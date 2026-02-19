@@ -311,8 +311,9 @@
                 TooltipDialog:{ Enable:true, Style:1 },
                 SelectRectDialog:{ Enable:true },
                 KLineTooltip:{ Enable:true, EnableKeyDown:false },
-                FloatTooltip:{ Enable:false, },
+                FloatTooltip:{ Enable:false },
                 SmallFloatTooltip:{ Enable:false },
+                FloatLayer:{ Enable:false },
                 SearchIndexDialog:{ Enable:true },
                 ModifyIndexParamDialog:{ Enable:true },
 
@@ -2119,14 +2120,31 @@ body
     background-color: var(--BGColor);
 }
 
-/* ---- 顶部周期 Tab 栏 ---- */
+/* ================================================================
+   彻底屏蔽所有悬浮提示窗口（动态生成，使用 !important 覆盖行内样式）
+   ================================================================ */
+.IYXChart_Tooltip_Name_Div,
+[class*="IYXChart_Tooltip"],
+[class*="IYXChart_Small_Tooltip"]
+{
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* ================================================================
+   顶部周期 Tab 栏
+   ================================================================ */
 #PeriodTab
 {
-    display: flex;
-    align-items: center;
+    display: flex !important;
+    align-items: center !important;
     width: 100%;
     height: 35px;
-    padding: 0 5px; /* 增加一点左右内边距 */
+    padding: 0 5px;
     border-bottom: solid 1px var(--BorderColor);
     background-color: var(--BGColor);
     box-sizing: border-box;
@@ -2167,18 +2185,19 @@ body
     overflow: hidden;
 }
 
-/* ---- Tab 样式 ---- */
+/* ================================================================
+   Tab 样式 — 废弃 float/line-height，改用 inline-flex 垂直居中
+   ================================================================ */
 .TabItem
 {
-    display: flex;
-    align-items: center;
-    padding-left: 8px;
-    padding-right: 8px;
-    justify-content: center;
-    line-height: normal;    /* 消除行高带来的偏移 */
-    height: 100%;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    padding: 0 12px;
+    line-height: 1 !important;
     border-right: solid 1px var(--BorderColor);
-    cursor: default;
+    cursor: pointer;
     background-color: var(--TabItemBG);
     color: var(--TabTextColor);
     font-size: 13px;
@@ -2207,12 +2226,14 @@ body
     flex: 1;
 }
 
-/* ---- 搜索框 ---- */
+/* ================================================================
+   搜索框 — 位于最左侧，右侧留 15px 间距后接周期 Tab
+   ================================================================ */
 .SearchInput
 {
     height: 24px;
     padding: 0 6px;
-    margin: 0 4px;
+    margin-left: 4px;
     border: 1px solid var(--BorderColor);
     background-color: var(--TabItemBG);
     color: var(--TabTextColor);
@@ -2220,6 +2241,7 @@ body
     width: 120px;
     box-sizing: border-box;
     outline: none;
+    flex-shrink: 0;
 }
 
 .SearchInput:focus
@@ -2230,11 +2252,13 @@ body
 .SearchClear
 {
     padding: 0 4px;
+    margin-right: 15px;   /* 搜索组右侧与第一个周期 Tab 的间距 */
     cursor: pointer;
     color: var(--TabTextColor);
     font-size: 14px;
     flex-shrink: 0;
-    line-height: 35px;
+    display: flex;
+    align-items: center;
 }
 
 .SearchClear:hover
@@ -2242,79 +2266,124 @@ body
     color: rgb(54,162,231);
 }
 
-/* ---- 公式编辑器工具区 ---- */
+/* ================================================================
+   公式编辑器区域 — 始终白色，不受皮肤切换影响
+   ================================================================ */
+.tools,
+.tools .top,
+.tools .table,
+.tools .code,
+.tools .cache
+{
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+.tools .table table,
+.tools .table table tbody td,
+.tools .table table thead th,
+.tools .table table td input
+{
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+.tools .top .toolsButton,
+.tools .top .input,
+.tools .top .changeIndex,
+.tools .top label
+{
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+/* CodeMirror 编辑器始终白色 */
+.CodeMirror,
+.CodeMirror-scroll
+{
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+/* ---- 公式编辑器原有样式（保持不变） ---- */
 .tools {
-    width:100%;
+    width: 100%;
 }
 .tools .top {
-    margin-bottom:2px;
+    margin-bottom: 2px;
 }
 .tools .top .toolsButton {
-    height:32px;
-    padding:0 8px;
-    cursor:pointer;
+    height: 32px;
+    padding: 0 8px;
+    cursor: pointer;
 }
 .tools .top span {
-    padding-left:2px;
+    padding-left: 2px;
 }
 .tools .top .input {
-    height:28px;
-    padding-left:5px;
+    height: 28px;
+    padding-left: 5px;
 }
 .tools .top .changeIndex {
-    height:32px;
-    width:90px;
+    height: 32px;
+    width: 90px;
 }
 
 .tools .table {
-    width:19.5%;
-    float:left;
+    width: 19.5%;
+    float: left;
 }
 
 .tools .table table {
-    width:100%;
+    width: 100%;
     border-left: 1px solid #ccc;
     border-top: 1px solid #ccc;
-    margin-left:1px;
+    margin-left: 1px;
 }
 
-.tools .table table tbody td,.tools .table table thead th {
+.tools .table table tbody td, .tools .table table thead th {
     border-right: 1px solid #ccc;
     border-bottom: 1px solid #ccc;
-    height:25px;
-    padding:5px;
-    width:95px;
-
+    height: 25px;
+    padding: 5px;
+    width: 95px;
     text-align: left;
 }
-.tools .table table td input{
-    width:50px;
+
+.tools .table table td input {
+    width: 50px;
 }
 
 .tools .code {
-    float:left;
-    width:60.5%;
+    float: left;
+    width: 60.5%;
 }
 
 .tools .cache {
-    float:left;
-    width:19.8%;
-    border:1px solid #ccc;
-    height:257px;
-    margin-left:-1px;
-    overflow-y:auto;
+    float: left;
+    width: 19.8%;
+    border: 1px solid #ccc;
+    height: 257px;
+    margin-left: -1px;
+    overflow-y: auto;
 }
 .tools .cache li {
-    padding:5px;
-    height:18px;
+    padding: 5px;
+    height: 18px;
 }
-.tools .cache li.active,.tools .cache li:hover{
-    background-color:#26B99A;
-    color:#fff;
-    cursor:pointer;
+.tools .cache li.active, .tools .cache li:hover {
+    background-color: #26B99A;
+    color: #fff;
+    cursor: pointer;
 }
-.tools .cache li span{
-    float:right;
-    margin-right:5px;
+.tools .cache li span {
+    float: right;
+    margin-right: 5px;
+}
+
+/* ---- 绘图工具浮层保证在图表上方 ---- */
+.IYXChart_DrawTool_Dialog_Div
+{
+    z-index: 10000 !important;
 }
 </style>
