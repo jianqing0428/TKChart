@@ -1,19 +1,53 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">  
-<head>  
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />  
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
-<title>仿通达信公式编辑器</title>  
+<title>仿通达信公式编辑器</title>
     <!-- 加载资源 -->
     <link rel="stylesheet" href="../jscommon/iyxchart.resource/font/iconfont.css" />
     <link rel="stylesheet" href="../jscommon/iyxchart.resource/font/drawtool/iconfont.css" />
     <link rel="stylesheet" href="../jscommon/iyxchart.resource/css/tools.css" />
     <link rel="stylesheet" href="../jscommon/iyxchart.resource/js/codemirror/codemirror.css" />
 
-</head>  
+</head>
 <body>
-    <div id="kline"></div>
+
+    <!-- 周期切换顶栏 -->
+    <div id="PeriodTab">
+        <input id="SearchInput" type="text" class="SearchInput" placeholder="代码/名称" autocomplete="off"/>
+        <div id="MinuteDay" class="TabItem">分时</div>
+        <div id="Minute5Day" class="TabItem">5日</div>
+        <div id="KLineDay" class="TabItem active">日线</div>
+        <div id="KLineWeek" class="TabItem">周线</div>
+        <div id="KLineMonth" class="TabItem">月线</div>
+        <div id="KLineYear" class="TabItem">年线</div>
+        <div id="KLineMinute" class="TabItem">1分钟</div>
+        <div id="KLine5Minute" class="TabItem">5分钟</div>
+        <div id="KLine15Minute" class="TabItem">15分钟</div>
+        <div id="KLine30Minute" class="TabItem">30分钟</div>
+
+        <div class="SpaceItem"></div>
+        <div id="StockChip" class="TabItem">筹码</div>
+        <div id="BeforeOpen" class="TabItem" style="display:none;">竞价</div>
+        <div id="DrawTool" class="TabItem">画线</div>
+        <span id="SearchClear" class="SearchClear">✕</span>
+        <div id="WhiteStyle" class="TabItem">白色风格</div>
+        <div id="BlackStyle" class="TabItem">黑色风格</div>
+    </div>
+
+    <!-- 图表容器 -->
+    <div id="ChartContainer">
+        <div id="Minute" style="display:none;">
+            <div id="MinuteCtrl"></div>
+        </div>
+        <div id="KLine">
+            <div id="kline"></div>
+        </div>
+    </div>
+
+    <!-- 公式编辑器 -->
     <div class="tools">
         <div id="tools_top" class="top">
             <span>指标名称：</span>
@@ -24,10 +58,10 @@
             </select>
 
             <input type="checkbox" id="exclude_y" name="exclude_y"/>
-            <label for="exclude_y">指标不参与Y轴计算</label>
+            <label for="exclude_y">不参与Y轴计算</label>
 
-            <button class="toolsButton" id="index_run">执行(切换指标)</button>
-            <button class="toolsButton" id="add_index_window">执行(新建窗口指标)</button>
+            <button class="toolsButton" id="index_run">执行(切换)</button>
+            <button class="toolsButton" id="add_index_window">执行(新建)</button>
             <button class="toolsButton" id="index_check">语法检测</button>
             <button class="toolsButton" id="index_save">保存指标</button>
 
@@ -40,19 +74,16 @@
             <label for="overlay_y">叠加指标使用独立坐标 </label>
 
             <button class="toolsButton" id="overlayindex_run">执行(叠加指标)</button>
-            
-            
-            
-            
+<!--
             <button class="toolsButton" id="style_black">黑色风格</button>
             <button class="toolsButton" id="style_white">白色风格</button>
             <button class="toolsButton" id="showAllKLine">显示全部K线</button>
 
             <span>K线支持键盘精灵</span>
-
+   
             <a href="https://jones2000.blog.csdn.net/article/details/129125330" target="_blank">函数帮助</a>
-            <a href="https://github.com/jones2000/TKChart" target="_blank">TKChart插件地址</a>
-
+            <a href="" target="_blank">TKChart插件地址</a>
+         -->
         </div>
         <div class="table" id="tools_table">
             <table cellpadding="0" cellspacing="0">
@@ -103,7 +134,7 @@
         </div>
         <div class="cache" id="tools_cache">
             <ul id="local_index">
-              <li>ddddd <span class="toolsButton">ddsfds</span></li> 
+              <li>ddddd <span class="toolsButton">ddsfds</span></li>
             </ul>
         </div>
     </div>
@@ -119,6 +150,7 @@
     <script src="../jscommon/iyxchart.popMenu.js"></script>
     <script src="../jscommon/iyxchart.DialogDrawTool.js"></script>
     <script src="../jscommon/iyxchart.PopMinuteChart.js"></script>
+    <script src="../jscommon/iyxchart.PopKLineChart.js"></script>
     <script src="../jscommon/iyxchart.report.js"></script>
     <script src="../jscommon/iyxchart.keyboard.js"></script>
     <script src="../jscommon/iyxchart.PopKeyboard.js"></script>
@@ -126,12 +158,11 @@
     <script src="../jscommon/iyxchart.DialogSelectRect.js"></script>
     <script src="../jscommon/iyxchart.DialogSearchIndex.js"></script>
     <script src="../jscommon/iyxchart.version.js"></script>
-    
+
     <!-- 公式编辑器 -->
     <script src="../jscommon/iyxchart.resource/js/codemirror/codemirror.js"></script>
     <script src="../jscommon/iyxchart.resource/js/codemirror/javascript.js"></script>
-   
-  
+
     <script src="../jscommon/iyxchart.testdata/60000.sh.capital.kline.js"></script>
     <script src="../jscommon/iyxchart.testdata/60000.sh.NewsInteract.js"></script>
     <script src="../jscommon/iyxchart.testdata/60000.sh.BlockTrading.js"></script>
@@ -173,6 +204,10 @@
     <script src="../jscommon/iyxchart.testdata/DayMinute/600000.sh.1day.minute.js"></script>
     <script src="../jscommon/iyxchart.testdata/DayMinute/000151.sz.1day.minute.js"></script>
 
+    <!-- 多日分时数据 -->
+    <script src="../jscommon/iyxchart.testdata/Day5Minute/600000.sh.5day.minute.js"></script>
+    <script src="../jscommon/iyxchart.testdata/Day5Minute/000001.sz.5day.minute.js"></script>
+    <script src="../jscommon/iyxchart.testdata/Day5Minute/000151.sz.5day.minute.js"></script>
 
     <script src="../jscommon/iyxchart.testdata.js"></script>
 
@@ -182,9 +217,12 @@
 
         //默认显示的指标代码
         var DEFAULT_CODE='MA1:MA(CLOSE,M1);\n\MA2:MA(CLOSE,M2);\n\MA3:MA(CLOSE,M3);\n\MA4:MA(CLOSE,M4);\nDRAWICON(C>O,H,5);';
-        //DEFAULT_CODE="BUY(C>O,L);";
-        //DEFAULT_CODE=`TIPICON(C>O, L, 1, STRFORMAT("低开高走<BR>收盘:{0:0.00}<BR>开盘:{1:.000}", C,O )), COLORRED, YMOVE(5), FONTSIZE15,VALIGN0`;
-        //DEFAULT_CODE=`DRAWTEXT(CLOSE>OPEN,LOW,'看多'),ALIGN1,VALIGN0,YMOVE(5),FONTSIZE14,BACKGROUND(RGBA(255, 69, 0,0.5),RGB(255,0,0), 1,1,1,1),RGB(230,230,230);`;
+
+        // 全局控件实例（供周期切换函数访问）
+        var klineControl = null;
+        var minuteControl = null;
+        var g_isKLine = true;           // 当前显示的是K线图(true)还是分时图(false)
+        var g_activeTabId = 'KLineDay'; // 当前选中的tab id
 
         //简单的把K线控件封装下
         function KLineChart(divKLine)
@@ -199,14 +237,14 @@
 
             this.JSPopMenu=new JSPopMenu();
             this.JSPopMenu.Inital();
-          
+
             //K线配置信息
             this.Option= {
                 Type:'历史K线图',   //创建图形类型
                 //Type:'历史K线图横屏',
 
                 //EnableBorderDrag:false,
-                
+
                 Windows: //窗口指标
                 [
                     //{Index:"EMPTY", TitleHeight:1},
@@ -218,22 +256,22 @@
                     //{ Index:"OX", Overlay:true, },
                     {Index:"MACD", },
                     {Index:"VOL", Overlay:true, YAxis: { FloatPrecision:0, StringFormat:2 } },
-                ], 
+                ],
 
-                
+
                 OverlayIndex:
                 [
                    //{ Index:'MA', Windows:0 , IsShareY:true, ShowRightText:false , IsShowIndexTitle:true, FloatPrecision:5 },
                     //{Index:'RSI', Windows:0, ShowRightText:false },
                     //{ Index:'BOLL', Windows:0, ShowRightText:true,IsShareY:true, ShowToolbar:true },
-                   // {Windows:0, IndexName:"指标ID", Name:"自定义指标", Script:"DRAWTEXT(CLOSE<OPEN,H,14),VALIGN2,ALIGN1,YMOVE(-10), XMOVE(5);", Identify:"guid_66990",ShowRightText:true,IsShareY:true }
+                   // {Windows:0, IndexName:"指标ID", Name:"自定义指标", Script:"DRAWTEXT(CLOSE>OPEN,LOW,'看多'),ALIGN1,VALIGN0,YMOVE(5),FONTSIZE14,BACKGROUND(RGBA(255, 69, 0,0.5),RGB(255,0,0), 1,1,1,1),RGB(230,230,230);", Identify:"guid_66990",ShowRightText:true,IsShareY:true }
                     //{Index:'MA5', Windows:1 ,ShowRightText:true}
                     //{Index:"VOL_OVERLAY", Windows:0 },
                 ],  //叠加指标
-                
+
 
                 //OverlayIndexFrameWidth:1,
-                //DragDownload: { Day:{ Enable:true } , Minute:{ Enable:true }}, 
+                //DragDownload: { Day:{ Enable:true } , Minute:{ Enable:true }},
 
                 EnableZoomUpDown:
                 {
@@ -257,7 +295,7 @@
                 //TradeIndex: {Index:'交易系统-BIAS'},    //交易系统
 
                 SplashTitle:'加载数据中......',
-    
+
                 IsShowRightMenu:true,          //右键菜单
                 //CorssCursorTouchEnd:true,
                 //IsClickShowCorssCursor:true,
@@ -280,11 +318,11 @@
 
                 //双击K线图 弹分时图配置
                 PopMinuteChart:
-                { 
-                    Enable:true, 
+                {
+                    Enable:true,
                     EnableMarkBG:true,
                     Option:
-                    { 
+                    {
                         Windows:
                         [
                             { Index:"RSI", Overlay:false,MaxMin:false }
@@ -301,17 +339,17 @@
                 {
                     //StorageKey:'4E7EA133-D6C8-4776-9869-1DDDCC5FA788'
                 },
-    
+
                 KLine:  //K线设置
                 {
                     DragMode:1,                 //拖拽模式 0=禁止拖拽 1=数据拖拽 2=区间选择
                     Right:1,                    //复权 0 不复权 1 前复权 2 后复权
-                    Period:0,                   //周期 0 日线 1 周线 2 月线 3 年线 
+                    Period:0,                   //周期 0 日线 1 周线 2 月线 3 年线
                     MaxRequestDataCount:8000,   //数据个数
                     MaxRequestMinuteDayCount:100, //分钟数据获取几天数据  默认取5天数据
-                    
+
                     //Info:["互动易","大宗交易",'龙虎榜',"调研","业绩预告","公告"],       //信息地雷
-                    //Info:["公告"], 
+                    //Info:["公告"],
                     //InfoPosition:0,
                     IsShowTooltip:true,                 //是否显示K线提示信息
                     DrawType:0,      //K线类型 0=实心K线柱子 1=收盘价线 2=美国线 3=空心K线柱子 4=收盘价面积图
@@ -320,7 +358,7 @@
                     RightSpaceCount:2,
                     ZoomType:0,
                     //OneLimitBarType:1,
-                    
+
                     //PageSize:30,               //一屏显示多少数据
                     DataWidth:10,
                 },
@@ -344,7 +382,7 @@
                 {
                     Mark:{ IsShow:true, Position:{ Top:"TopEx" } }
                 },
-    
+
                 KLineTitle: //标题设置
                 {
                     IsShowName:true,       //不显示股票名称
@@ -354,14 +392,14 @@
 
                 //DragDownload: { Day:{ Enable:true } },   //拖拽下载
 
-                
+
                 DragSelectRect:
                 {
                     Enable:true,
                     ShowMode:2,
                     //ZIndex:3,
                 },
-                
+
                 Border: //边框
                 {
                     Left:1,         //左边间距
@@ -372,61 +410,26 @@
                     AutoLeft:{ Blank:10, MinWidth:60 },
                     AutoRight:{ Blank:5, MinWidth:60 },
                 },
-                
+
                 Frame:  //子框架设置
                 [
                     {
-                        SplitCount:6, 
+                        SplitCount:6,
                         //SplitType:1,
                         Custom:
                         [
-                            
-                            { 
+
+                            {
                                 Type:0,
-                               
-                                Position:'right', LineType:1, 
+
+                                Position:'right', LineType:1,
                                 //PositionEx:1,
-                            },
-                            
-                            /*
-                            { 
-                                Type:1, 
-                                Position:'right',IsShowLine:true, LineType:0,
-                                //PositionEx:1,
-                                Data:
-                                [
-                                    {
-                                        Value:7.73,
-                                        Color:'rgb(0, 0 ,205)', TextColor:'rgb(255,255,255)',    //Color:线段及文字背景色 TextColor:文字颜色
-                                        Text:[ {Text:"价格:9.73"}, {Text:"成本线"} ]
-                                    },
-                                    {
-                                        Value:6.50,
-                                        Color:'rgb(255 ,165, 79)', TextColor:'rgb(255,255,255)',    //Color:线段及文字背景色 TextColor:文字颜色
-                                    }
-                                ] 
                             },
 
-                            { 
-                                Type:1, 
-                                Position:'right',IsShowLine:true,LineType:1,PositionEx:1, LineWidth:2, LineDash:[4,4],
-                                Data:
-                                [
-                                    {
-                                        Value:8.0,
-                                        Color:'rgb(255,185,255)', TextColor:'rgb(255,255,255)',    //Color:线段及文字背景色 TextColor:文字颜色
-                                    },
-                                    {
-                                        Value:5.51,
-                                        Color:'rgb(255,185,0)', TextColor:'rgb(255,255,255)',    //Color:线段及文字背景色 TextColor:文字颜色
-                                    }
-                                ] 
-                            }
-                            */
                         ]
-                        
-                        
-                        
+
+
+
                     },
 
                     { SplitCount:5, BottomSpace:18,FilterType:1 },
@@ -448,16 +451,15 @@
                     //{ Symbol:'600999.sh' }
                 ],
             };
-                 
+
             this.Create=function()  //创建图形
             {
                 var self=this;
                 $(window).resize(function() { self.OnSize(); });    //绑定窗口大小变化事件
-                //$(window).resize(function() { self.OnSize(  ); });    //绑定窗口大小变化事件
-                
+
                 var resource=JSChart.GetResource();
                 this.DivKLine.style.backgroundColor=resource.BGColor; //设置最外面的div背景
-                
+
                 this.Option.EventCallback=
                 [
                     {
@@ -474,15 +476,15 @@
 
                     },
                     {
-                        event:JSCHART_EVENT_ID.ON_SPLIT_YCOORDINATE, 
+                        event:JSCHART_EVENT_ID.ON_SPLIT_YCOORDINATE,
                         callback:(event, data, obj)=>{ this.OnSplitYCoordinate(event, data, obj); }
                     },
                     {
-                        event:JSCHART_EVENT_ID.ON_SPLIT_XCOORDINATE, 
+                        event:JSCHART_EVENT_ID.ON_SPLIT_XCOORDINATE,
                         callback:(event, data, obj)=>{ this.OnSplitXCoordinate(event, data, obj); }
                     },
                     {
-                        event:JSCHART_EVENT_ID.ON_CREATE_OVERLAY_FRAME, 
+                        event:JSCHART_EVENT_ID.ON_CREATE_OVERLAY_FRAME,
                         callback:(event, data, obj)=>{ this.OnCreateOverlayFrame(event, data, obj); }
                     },
                     {
@@ -515,7 +517,7 @@
                         callback:(event, data, obj)=>{ this.OnMenuCommand(event, data, obj); }
                     },
                     {
-                        event:JSCHART_EVENT_ID.ON_CLICK_CROSSCURSOR_RIGHT, 
+                        event:JSCHART_EVENT_ID.ON_CLICK_CROSSCURSOR_RIGHT,
                         callback:(event, data, obj)=>{ this.ClickCrossCursor(event, data, obj); }
                     },
                     {
@@ -561,7 +563,7 @@
             {
                 console.log(`[HQData::NetworkFilter] ${HQData.Explain}`, data);
 
-                switch(data.Name) 
+                switch(data.Name)
                 {
                     case 'JSSymbolData::GetSymbolData':                 //分时图数据对接
                         this.GetSymbolData(data, callback);
@@ -583,7 +585,7 @@
                 {
                     if (ChartData.IsDayPeriod(period, true))
                         HQData.RequestHistoryData(data, callback);
-                    else if (ChartData.IsMinutePeriod(peirod, true))
+                    else if (ChartData.IsMinutePeriod(period, true))
                         HQData.RequestHistoryMinuteData(data, callback);
                 }
             }
@@ -629,24 +631,24 @@
                     {
                         var  aryButton=
                         [
-                            { Title:"MACD", ID:"F_BTN_01", TooltipText:"MACD:平滑异同平均", Data:{ IndexID:"MACD"}}, 
-                            { Title:"RSI", ID:"F_BTN_02", TooltipText:"RSI:相对强弱指标", Data:{ IndexID:"RSI"} }, 
-                            { Title:"CCI", ID:"F_BTN_03",TooltipText:"CCI:商品路径指标", Data:{ IndexID:"CCI"} }, 
+                            { Title:"MACD", ID:"F_BTN_01", TooltipText:"MACD:平滑异同平均", Data:{ IndexID:"MACD"}},
+                            { Title:"RSI", ID:"F_BTN_02", TooltipText:"RSI:相对强弱指标", Data:{ IndexID:"RSI"} },
+                            { Title:"CCI", ID:"F_BTN_03",TooltipText:"CCI:商品路径指标", Data:{ IndexID:"CCI"} },
                             { Title:"ATR", ID:"F_BTN_04", TooltipText:"ATR:说明......", Data:{ IndexID:"ATR"}},
                             { Title:"VMACD", ID:"F_BTN_05",TooltipText:"VMACD:说明......", Data:{ IndexID:"VMACD"}},
                             { Title:"BRAR", ID:"F_BTN_06", TooltipText:"BRAR:说明......", Data:{ IndexID:"BRAR"}},
                             { Title:"更多指标", ID:"F_BTN_07", TooltipText:"更多更多......", SVGButton:{ Symbol:"\ue694", }, Data:{ } },
 
-                            { Title:"新增窗口", ID:"F_BTN_08", TooltipText:"新增加一个新的指标窗口", Data:{ }}, 
+                            { Title:"新增窗口", ID:"F_BTN_08", TooltipText:"新增加一个新的指标窗口", Data:{ }},
                             //{ SVGButton:{ Symbol:"\ue694", }, ID:"F_BTN_08", Data:{ } }
                         ];
-                    
+
                         obj.CreateExtendChart("FrameButtomToolbarPaint", { FrameID:frame.Identify, AryButton:aryButton } );
                     }
 
 
                     //frame.HorizontalReserved={ Top:50, Bottom:30 };
-                
+
                 }
 
                 this.UpdateWindowsSelectDOM();
@@ -702,7 +704,7 @@
 
             this.OnSplitYCoordinate=function(event, data ,obj)
             {
-               
+
             }
 
             this.OnSplitXCoordinate=function(event, data, obj)
@@ -718,62 +720,35 @@
                     var info=new CoordinateInfo();
                     info.Type=5;
                     info.Value=7;
-                    //info.Message=["40%", "40%"]
                     info.AreaData={  Value:[6.0, 7.0], BGColor:"rgba(249,210,88,0.5)", Position:[0, 1 ] }
                     data.Frame.CustomHorizontalInfo.push(info);
-                    
+
                     var info=new CoordinateInfo();
                     info.Type=5;
                     info.Value=8;
-                    //info.Message=["40%", "40%"]
                     info.AreaData={  Value:[7.0, 8.0], BGColor:"rgba(93,202,119,0.5)", Position:[0, 1 ] }
                     data.Frame.CustomHorizontalInfo.push(info);
 
                     var info=new CoordinateInfo();
                     info.Type=5;
                     info.Value=9;
-                    //info.Message=["60%", "60%"]
                     info.AreaData={  Value:[8.0, 9.0], BGColor:"rgba(43,190,174,0.5)", Position:[0, 1 ] }
                     data.Frame.CustomHorizontalInfo.push(info);
 
                     var info=new CoordinateInfo();
                     info.Type=5;
                     info.Value=10;
-                    //info.Message=["60%", "60%"]
                     info.AreaData={  Value:[9.0, 10.0], BGColor:"rgba(125, 212, 251,0.5)", Position:[0, 1 ] }
                     data.Frame.CustomHorizontalInfo.push(info);
-                    
-                }
-                else if (data.ID==1)
-                {
-                    /*
-                    var info=new CoordinateInfo();
-                    info.Type=10;
-                    info.Value="TopEx";
-                    info.LineColor="rgb(255,0,0)";
-                    info.LineType=-1;
-                    info.ExtendLine=[null,{Width:20}]
-                    info.Message=[null, "顶部刻度 888"]
-                    
-                    data.Frame.CustomHorizontalInfo.push(info);
 
-                    var info=new CoordinateInfo();
-                    info.Type=10;
-                    info.Value="BottomEx";
-                    info.LineColor="rgb(0,255,0)";
-                    info.TextColor="rgb(0,0,0)";
-                    info.Message=[null, "底部刻度 666"]
-                    
-                    data.Frame.CustomHorizontalInfo.push(info);
-                    */
                 }
             }
 
             this.OnSize=function(option)  //自适应大小调整
             {
-                var height= $(window).height()-300;
+                var height= $(window).height()-335;  // 300 工具栏 + 35 顶部周期tab
                 var width = $(window).width();
-                
+
                 this.DivKLine.style.top='0px';
                 this.DivKLine.style.left='0px';
                 //this.DivKLine.style.width=width+'px';
@@ -783,7 +758,7 @@
 
             this.ChangeSymbol=function(symbol)
             {
-                this.Chart.ChangeSymbol(symbol);
+                if (this.Chart) this.Chart.ChangeSymbol(symbol);
             }
 
             this.OverlayIndex=function()
@@ -820,8 +795,8 @@
                 var code=this.IndexEdit.getValue();
 
                 var PARAM_LIST=
-                [ 
-                    {Name:"param_name", Value:"param_value"}, 
+                [
+                    {Name:"param_name", Value:"param_value"},
                     {Name:"param_name_1", Value:"param_value_1"},
                     {Name:"param_name_2", Value:"param_value_2"},
                     {Name:"param_name_3", Value:"param_value_3"}
@@ -868,7 +843,7 @@
                 var indexInfo=this.GetIndexInfo();
 
                 this.Chart.AddScriptIndexWindow(indexInfo)
-                
+
                 this.UpdateWindowsSelectDOM();
 
             }
@@ -885,7 +860,7 @@
                 {
                     option.YAxis=indexInfo.YAxis;
                 }
-                
+
                 this.Chart.AddOverlayIndex(option);
             }
 
@@ -906,7 +881,7 @@
                             if (item.Type==0) strLog+=item.Data+'\n';
                             else strLog+=item.Draw+'\n';
 
-                            if (i>30) 
+                            if (i>30)
                             {
                                 strLog+='......';   //太多了就不显示了
                                 break;
@@ -918,14 +893,14 @@
 
                     Arguments: indexInfo.Args,
                 };
-                
+
                 JSComplier.Explain(indexInfo.Script, option, (error, data)=>
                 {
                     console.log("[Explain] error, data ", error, data);
                     alert(`语法错误: 行号:${error.LineNumber}, ${error.Description}`);
                 });
             }
-        
+
 
             //本地指标
             this.LoadLocalIndex=function()
@@ -940,9 +915,9 @@
                 for(var i=0;i<saveData.length;++i)
                 {
                     var item=saveData[i];
-                    mapIndex.set(item.Key, item.Data);    
+                    mapIndex.set(item.Key, item.Data);
                 }
-                
+
                 this.MapIndex=mapIndex;
 
                 this.UpdateIndexList();
@@ -1010,7 +985,7 @@
                 if (!this.MapIndex.has(name)) return;
 
                 if (!window.confirm(`是否删除指标[${name}]`)) return;
-                
+
                 this.MapIndex.delete(name);
 
                 this.UpdateIndexList();
@@ -1027,8 +1002,8 @@
                 document.getElementById('index_name').value=item.Name;
 
                 var PARAM_LIST=
-                [ 
-                    {Name:"param_name", Value:"param_value"}, 
+                [
+                    {Name:"param_name", Value:"param_value"},
                     {Name:"param_name_1", Value:"param_value_1"},
                     {Name:"param_name_2", Value:"param_value_2"},
                     {Name:"param_name_3", Value:"param_value_3"}
@@ -1050,7 +1025,7 @@
                         document.getElementById(paramItem.Name).value="";
                         document.getElementById(paramItem.Value).value="";
                     }
-                    
+
                 }
 
                 document.getElementById('window_index').value=item.WindowIndex;
@@ -1065,7 +1040,7 @@
             this.ChangeStyle=function(styleName)
             {
                 var buttonColor=[null,null];
-                if (styleName=='black') 
+                if (styleName=='black')
                 {
                     var style=TKChartStyle.GetStyleConfig(STYLE_TYPE_ID.BLACK_ID); //读取风格配置
 
@@ -1074,7 +1049,7 @@
 
                     JSChart.SetCSSStyle(STYLE_TYPE_ID.BLACK_ID);
                 }
-                else if (styleName=='white') 
+                else if (styleName=='white')
                 {
                     var style=TKChartStyle.GetStyleConfig(STYLE_TYPE_ID.WHITE_ID); //读取风格配置
                     style.BGColor='rgb(255,255,255)';
@@ -1084,7 +1059,7 @@
 
                     JSChart.SetCSSStyle(STYLE_TYPE_ID.WHITE_ID);
                 }
-                else 
+                else
                 {
                     return;
                 }
@@ -1130,8 +1105,8 @@
                 style.OverlayFrame.BolderPen=style.FrameBorderPen;
                 JSChart.SetStyle(style);
                 this.DivKLine.style.backgroundColor=style.BGColor;   //修改div背景色
-                
-                this.Chart.ReloadResource({ Resource:null, Draw:true , Update:true });  //动态更新颜色配置  
+
+                this.Chart.ReloadResource({ Resource:null, Draw:true , Update:true });  //动态更新颜色配置
 
             }
 
@@ -1146,7 +1121,7 @@
 
                 if (!data.Info) return;
 
-                if (this.OnClickIndexButton(data.Info, data.e, obj)) 
+                if (this.OnClickIndexButton(data.Info, data.e, obj))
                 {
                     data.PreventDefault=true;
                 }
@@ -1169,22 +1144,22 @@
                     this.Chart.ChangeIndex(windowIndex, indexID);
                     return;
                 }
-                
+
                 if (btnInfo.ID=="F_BTN_07")
                 {
                     var tabInfo={ID:"F_BTN_07", Chart:chart };
                     var menuData=
-                    { 
+                    {
                         Menu:
-                        [ 
-                            { Name:"ACD", ID:"POP_MENU_1", Data:{ IndexID:"ACD", WindowIndex:btnInfo.FrameID, TabInfo:tabInfo } },  
-                            { Name:"AMV", ID:"POP_MENU_2", Data:{ IndexID:"AMV", WindowIndex:btnInfo.FrameID, TabInfo:tabInfo } },  
+                        [
+                            { Name:"ACD", ID:"POP_MENU_1", Data:{ IndexID:"ACD", WindowIndex:btnInfo.FrameID, TabInfo:tabInfo } },
+                            { Name:"AMV", ID:"POP_MENU_2", Data:{ IndexID:"AMV", WindowIndex:btnInfo.FrameID, TabInfo:tabInfo } },
                             { Name:"BIAS", ID:"POP_MENU_3", Data:{ IndexID:"BIAS", WindowIndex:btnInfo.FrameID, TabInfo:tabInfo } },
-                            { 
-                                Name:"其他指标", 
+                            {
+                                Name:"其他指标",
                                 SubMenu:
-                                [ 
-                                    { Name:"WAD", Data:{ IndexID:"WAD", WindowIndex:btnInfo.FrameID, TabInfo:tabInfo }}, 
+                                [
+                                    { Name:"WAD", Data:{ IndexID:"WAD", WindowIndex:btnInfo.FrameID, TabInfo:tabInfo }},
                                     { Name:"MASS", Data:{ IndexID:"MASS", WindowIndex:btnInfo.FrameID, TabInfo:tabInfo }}
                                 ]
                             }
@@ -1207,7 +1182,7 @@
 
                     tkchart.ShowAddIndexWindowDialog({ });
                 }
-                
+
 
                 return true;
             }
@@ -1243,7 +1218,7 @@
 
                 var aryChart=obj.GetExtendChartByClassNameV2("FrameButtomToolbarPaint");
                 if (!IFrameSplitOperator.IsNonEmptyArray(aryChart)) return;
-                
+
                 var windowIndex=data.WindowIndex;
                 var indexID=data.IndexInfo.ID;
                 for(var i=0;i<aryChart.length;++i)  //工具栏联动
@@ -1265,7 +1240,7 @@
 
                         if (finder) chart.SetSelectedID(finder.ID);
                         else chart.SetSelectedID(null);
-                        
+
                         return;
                     }
                 }
@@ -1274,16 +1249,16 @@
             this.OnClickTitleButton=function(event, data, obj)
             {
                 console.log("[KLineChart::OnClickTitleButton] data=", data);
-                
+
                 if (!data.Info || !data.Info.Data) return;
                 var rtButton=data.Info.Rect;
                 var e=data.e;
                 if (data.Info.ID==8889)
                 {
                     var menuData=
-                    { 
+                    {
                         Menu:
-                        [ 
+                        [
                             this.Chart.JSChartContainer.GetModifyOverlayIndexMenuData(data.Info.Data.IndexGuid),
                             this.Chart.JSChartContainer.GetShowOverlayIndexMenuData(data.Info.Data.IndexGuid),
                             this.Chart.JSChartContainer.GetShowOverlayIndexYAxisMenuData(data.Info.Data.IndexGuid),
@@ -1304,20 +1279,20 @@
                     var frame=this.Chart.JSChartContainer.Frame.SubFrame[data.Info.FrameID].Frame;
 
                     var menuData=
-                    { 
+                    {
                         Menu:
-                        [ 
+                        [
                             modifyMenu,
                             menuItem,
-                            { 
-                                Name:"Y轴分割方式", 
+                            {
+                                Name:"Y轴分割方式",
                                 SubMenu:
                                 [
                                     { Name:"自动", Data:{ ID:"CHANGE_Y_SPLIT_TYPE", Args:[data.Info.FrameID, 0] }, Checked:frame.YSplitOperator.SplitType===0 },
                                     { Name:"数值最大最小", Data:{ ID:"CHANGE_Y_SPLIT_TYPE", Args:[data.Info.FrameID, 1] },Checked:frame.YSplitOperator.SplitType===1  },
                                 ]
                             },
-                            { Name:"设置2",  Data:{ ID:"INDEX_DRAPDOWN_MENU_2", WindowIndex:data.Info.FrameID } },  
+                            { Name:"设置2",  Data:{ ID:"INDEX_DRAPDOWN_MENU_2", WindowIndex:data.Info.FrameID } },
                         ],
 
                         Position:JSPopMenu.POSITION_ID.TAB_MENU_ID,
@@ -1325,7 +1300,7 @@
                         ClickCallback:(data)=>{ this.OnClickIndexDrapdownMenu(data); }
                     };
                 }
-               
+
                 this.Chart.PopupMenuByDrapdown(menuData, rtButton);
 
                 if(e.preventDefault) e.preventDefault();
@@ -1334,7 +1309,7 @@
 
             this.OnClickIndexDrapdownMenu=function(menuData)
             {
-                if (menuData.Data.ID==JSCHART_MENU_ID.CMD_SHOW_INDEX_ID || menuData.Data.ID==JSCHART_MENU_ID.CMD_SHOW_OVERLAY_INDEX_ID || 
+                if (menuData.Data.ID==JSCHART_MENU_ID.CMD_SHOW_INDEX_ID || menuData.Data.ID==JSCHART_MENU_ID.CMD_SHOW_OVERLAY_INDEX_ID ||
                     menuData.Data.ID==JSCHART_MENU_ID.CMD_DELETE_OVERLAY_INDEX_ID || menuData.Data.ID==JSCHART_MENU_ID.CMD_SHOW_OVERLAY_Y_AXIS_ID ||
                     menuData.Data.ID==JSCHART_MENU_ID.CMD_ENABLE_OVERLAY_SHARE_Y_ID ||
                     menuData.Data.ID==JSCHART_MENU_ID.CMD_MODIFY_INDEX_PARAM || menuData.Data.ID==JSCHART_MENU_ID.CMD_MODIFY_OVERLAY_INDEX_PARAM )
@@ -1356,7 +1331,7 @@
                     var text=`指标下拉菜单\r\n窗口:${menuData.Data.WindowIndex}\r\n菜单ID:${menuData.Data.ID}`;
                     alert(text);
                 }
-                
+
             }
 
             this.ColorCount=0;
@@ -1373,9 +1348,9 @@
                 if (windowIndex==0)
                 {
                     var menuData=
-                    { 
+                    {
                         Menu:
-                        [ 
+                        [
                             { Name:`买入 @ ${yValue.toFixed(2)}`,  Data:{ ID: "MENU_BUY_ID",  Args:[yValue] } },
                             { Name:`卖出 @ ${yValue.toFixed(2)}`,  Data:{ ID: "MENU_SELL_ID", Args:[yValue] } },
                             { Name:JSPopMenu.SEPARATOR_LINE_NAME },
@@ -1388,11 +1363,11 @@
                     };
                 }
                 else
-                { 
+                {
                     var menuData=
-                    { 
+                    {
                         Menu:
-                        [ 
+                        [
                             { Name:`画线 @ ${yValue.toFixed(5)}`,  Data:{ ID: "MENU_DRAW_LINE_ID", Args:[yValue, windowIndex] } },
                         ],
 
@@ -1402,7 +1377,7 @@
                     };
 
                 }
-                
+
 
                 this.Chart.PopupMenuByDrapdown(menuData, rtButton);
 
@@ -1424,13 +1399,13 @@
                     var yValue=data.Data.Args[0];
                     var frameID=data.Data.Args[1];
                     var drawPictrue=
-                    { 
-                        ClassName:"ChartDrawHLine",                   
-                        Value:[ {XValue:0, YValue:yValue} ],    
+                    {
+                        ClassName:"ChartDrawHLine",
+                        Value:[ {XValue:0, YValue:yValue} ],
                         FrameID:frameID,
-                        RightSpaceWidth:2,	 
-                        Button:{ SettingIcon:null },     
-                        ButtonBGColor:"rgb(100,0,0)",    
+                        RightSpaceWidth:2,
+                        Button:{ SettingIcon:null },
+                        ButtonBGColor:"rgb(100,0,0)",
                         LineColor:lineColor
                     };
 
@@ -1480,10 +1455,9 @@
                     {
                         item.SubMenu.push({ Name:JSPopMenu.SEPARATOR_LINE_NAME });
                         var indexInfo={ API: { ID:"API-DRAWTEXTREL", Name:'收盘线(后台)',Args:null, Url:'local'} };
-                        //indexInfo.Window={ HorizontalReserved:{ Top:100, Bottom:50 } };
                         var newItem={ Name:indexInfo.API.Name, Data:{ ID: JSCHART_MENU_ID.CMD_CHANGE_API_INDEX_ID, Args:[frameID, indexInfo]}};
                         item.SubMenu.push(newItem);
-                        
+
                         var indexInfo={ API: { ID:"API-MULTI_POINT", Name:'MULTI_POINT指标(后台)',Args:null, Url:'local'} };
                         var newItem={ Name:indexInfo.API.Name, Data:{ ID: JSCHART_MENU_ID.CMD_CHANGE_API_INDEX_ID, Args:[frameID, indexInfo]}};
                         item.SubMenu.push(newItem);
@@ -1499,15 +1473,15 @@
                         var indexInfo={ API: { ID:"API-MULTI_LINE", Name:'MULTI_LINE指标(后台)',Args:null, Url:'local'} };
                         var newItem={ Name:indexInfo.API.Name, Data:{ ID: JSCHART_MENU_ID.CMD_CHANGE_API_INDEX_ID, Args:[frameID, indexInfo]}};
                         item.SubMenu.push(newItem);
-                        
+
 
                         var indexInfo={ Name:"高低均价(自定义脚本)", ID:"HIGH_LOW_AV", Script:"均价:(H+L)/2;高:H;低:L;" };
-                        var option=null; //{ Window:{ HorizontalReserved:{ Top:100, Bottom:50 }} };
+                        var option=null;
                         var newItem={ Name:indexInfo.Name, Data:{ ID: JSCHART_MENU_ID.CMD_CHANGE_SCRIPT_INDEX_ID, Args:[frameID, indexInfo, option]}};
                         item.SubMenu.push(newItem);
                     }
                 }
-                
+
             }
 
             this.OnMenuCommand=function(event, data, obj)
@@ -1526,7 +1500,7 @@
             this.UpdateWindowsSelectDOM=function()
             {
                 if (!this.Chart.JSChartContainer) return;
-                
+
                 var selectDom=document.getElementById('window_index');
                 selectDom.options.length=0;
 
@@ -1545,7 +1519,7 @@
             {
                 this.Chart.JSChartContainer.ShowAllKLine();
             }
-        
+
 
             this.OnRecvHistoryData=function(event, data, obj)
             {
@@ -1573,13 +1547,13 @@
             this.OnFormatKLineFloatTooltip=function(event, data, obj)
             {
                 return;
-                
+
                 var aryText=data.AryText;   //显示的数据
                 var kItem=data.data;        //K线数据
 
                 var item=
-                { 
-                    Title:"字段1", 
+                {
+                    Title:"字段1",
                     Text:'99999万',
                     Color:'rgb(255,0,255)'
                 };
@@ -1590,6 +1564,44 @@
             this.OnCalculateChipData=function(event, data, obj)
             {
                 console.log("[KLineChart::OnCalculateChipData] data=", data);
+            }
+
+            // ---- 新增：周期/筹码/画线方法 ----
+
+            this.ChangePeriod=function(value)
+            {
+                if (this.Chart) this.Chart.JSChartContainer.ChangePeriod(value);
+            }
+
+            this.EnableStockChip=function()
+            {
+                if (!this.Chart || !this.Chart.JSChartContainer) return;
+                var tkchart=this.Chart.JSChartContainer;
+                var bShowStockChip=false;
+                if (tkchart.GetStockChipChart()) bShowStockChip=true;
+                var stockChipConfig={Name:'StockChip', ShowType:1, Width:230};
+                if (bShowStockChip)
+                    tkchart.ExecuteMenuCommand(JSCHART_MENU_ID.CMD_HIDE_STOCKCHIP_ID);
+                else
+                    tkchart.ExecuteMenuCommand(JSCHART_MENU_ID.CMD_SHOW_STOCKCHIP_ID, [stockChipConfig.Name, stockChipConfig]);
+            }
+
+            this.ShowDrawTool=function()
+            {
+                if (!this.Chart || !this.Chart.JSChartContainer) return;
+                var tkchart=this.Chart.JSChartContainer;
+                var bShow=tkchart.IsShowDrawToolDialog();
+                if (!bShow) tkchart.ExecuteMenuCommand(JSCHART_MENU_ID.CMD_SHOW_DRAWTOOL_ID);
+            }
+
+            this.Hide=function()
+            {
+                if (this.Chart && this.Chart.JSChartContainer) this.Chart.JSChartContainer.HideAllPopDiv();
+            }
+
+            this.ReloadResource=function()
+            {
+                if (this.Chart) this.Chart.ReloadResource({ Resource:null, Draw:true, Update:true });
             }
         }
 
@@ -1613,6 +1625,264 @@
             JSChart.SetCSSStyle(STYLE_TYPE_ID.BLACK_ID);
         }
 
+
+        // ---- 分时图控件 ----
+        function MinuteChart(divKLine)
+        {
+            this.DivKLine=divKLine;
+            this.Chart=JSChart.Init(divKLine, false, false);   //把分时图绑定到一个Div上
+
+            //分时图配置
+            this.Option= {
+                Type:'分钟走势图',   //创建图形类型
+
+                Windows: //窗口指标
+                [
+                    //{ Index:"AMO", YAxis:{StringFormat:1} },
+                    { Index:"MACD", AddIndexWindow:true, IsSync:true, IndexHelp:true, },
+
+                ],
+
+                OverlayIndex:
+                [
+
+                ],  //叠加指标
+
+                Symbol:'600000.sh',
+                IsAutoUpdate:true,          //是自动更新数据
+                AutoUpdateFrequency:1000,   //数据更新频率
+                DayCount:1,                 //1 最新交易日数据 >1 多日走势图
+                IsShowRightMenu:true,       //是否显示右键菜单
+
+                LatestPointFlash:{ Enable:true, Frequency:500 },
+
+                DragSelectRect:
+                {
+                    Enable:true,
+                    EnableLButton:true,
+                },
+
+                EnableZoomIndexWindow:true,
+
+                EnablePopMenuV2:true,
+                EnableDrawToolDialogV2:true,
+                EnableNewIndex:true,
+                TooltipDialog:{ Enable:false, Style:1 },
+                EnableResize:true,
+                Minute:{ DragMode:1, },
+
+                MaxDayCount:5,
+
+                CorssCursorInfo:
+                {
+                    HPenType:1, VPenType:1,
+                    Left:1, Right:1, Bottom:1,
+                    RightButton:{ Enable:true },
+                    EnableDBClick:true,
+                },
+
+
+                SelectRect:
+                {
+                    ShowRangeText:{ Enable:true, Position:1 },
+                },
+
+                SelectRectDialog:{ Enable:true },
+
+                EnableYDrag:
+                {
+                    Right:true,
+                    Left:true,
+                    Wheel:true,
+                },
+
+                MinuteLine:
+                {
+                    IsDrawAreaPrice:true,      //是否画价格面积图
+                },
+
+                MinuteTitle:
+                {
+                    IsShowTime:true,
+                    IsShowName:true,
+                    IsShowDate:false,
+                    IsShowVolTitle:true,
+                    IsTitleShowLatestData:true,
+                },
+
+                MinuteVol:
+                {
+                    BarColorType:1,
+                },
+
+                IsDrawPictureXY:true,
+
+                SelectedChart:{ EnableSelected: true, EnableMoveOn:true },
+                EnableIndexChartDrag:true,
+
+                FloatTooltip:{ Enable:true, },
+                SearchIndexDialog:{ Enable:true },
+                ModifyIndexParamDialog:{ Enable:true },
+
+                EnableNightDayBG:true,
+
+                Border: //边框
+                {
+                    Left:20,    //左边间距
+                    Right:20,   //右边间距
+                    Top:25,
+                    Bottom:25,
+
+                    AutoLeft:{ Blank:10, MinWidth:60 },
+                    AutoRight:{ Blank:10, MinWidth:60 },
+                },
+
+                Frame:  //子框架设置
+                [
+                    {
+                        Custom:
+                        [
+                            {
+                                Type:0,  Position:'right',
+                            }
+                        ]
+                    },
+                ],
+
+                Overlay:    //叠加股票
+                [
+                ],
+
+                ExtendChart:    //扩展图形
+                [
+                    {Name:'MinutePCTooltip' }, //PC端tooltip
+                ]
+            };
+
+
+            this.Create=function()  //创建图形
+            {
+                var self=this;
+                $(window).resize(function() { self.OnSize(); });    //绑定窗口大小变化事件
+
+                this.Option.ScriptError=(error)=> { this.ExecuteScriptError(error); }
+                this.Option.NetworkFilter=(data, callback)=>{ this.NetworkFilter(data, callback); }
+
+                this.Option.EventCallback=
+                [
+
+                ];
+
+                this.Chart.SetOption(this.Option);  //设置分时图配置
+                this.OnSize();  //初始化尺寸
+            }
+
+            this.ExecuteScriptError=function(error)
+            {
+                var log=`错误:${error.Description}\r\n���号:${error.LineNumber}`;
+                if (error.Word) log+="\r\n错误单词:"+error.Word;
+                alert(log);
+            }
+
+            this.NetworkFilter=function(data, callback)
+            {
+                console.log(`[MinuteChart::NetworkFilter] ${HQData.Explain}`, data);
+
+                switch(data.Name)
+                {
+                    default:
+                        HQData.NetworkFilter(data, callback);
+                        break;
+                }
+            }
+
+
+            this.OnSize=function(option)  //自适应大小调整
+            {
+                var height= $(window).height()-335;  // 300 工具栏 + 35 顶部周期tab
+                this.DivKLine.style.height=height+'px';
+                //this.Chart.OnSize(option);
+            }
+
+            this.ChangeSymbol=function(symbol)
+            {
+                if (this.Chart) this.Chart.ChangeSymbol(symbol);
+            }
+
+            this.Hide=function()
+            {
+                if (this.Chart && this.Chart.JSChartContainer) this.Chart.JSChartContainer.HideAllPopDiv();
+            }
+
+            this.ChangeDayCount=function(count)
+            {
+                if (this.Chart) this.Chart.JSChartContainer.ChangeDayCount(count);
+            }
+
+            this.ReloadResource=function()
+            {
+                if (this.Chart) this.Chart.ReloadResource({ Resource:null, Draw:true, Update:true });
+            }
+
+            this.ShowDrawTool=function()
+            {
+                if (!this.Chart || !this.Chart.JSChartContainer) return;
+                var tkchart=this.Chart.JSChartContainer;
+                var bShow=tkchart.IsShowDrawToolDialog();
+                if (!bShow) tkchart.ExecuteMenuCommand(JSCHART_MENU_ID.CMD_SHOW_DRAWTOOL_ID);
+            }
+
+            this.EnableBeforeOpen=function()
+            {
+                if (!this.Chart || !this.Chart.JSChartContainer) return;
+                var tkchart=this.Chart.JSChartContainer;
+                var bShow=tkchart.IsShowBeforeData && tkchart.IsShowMultiDayBeforeData;
+                var data={ Left:!bShow, MultiDay:{ Left:!bShow }};
+                tkchart.ExecuteMenuCommand(JSCHART_MENU_ID.CMD_SHOW_CALLCATION_ID,[data]);
+            }
+        }
+
+
+        // ---- 周期Tab切换函数 ----
+
+        function setActiveTab(id)
+        {
+            var old=document.getElementById(g_activeTabId);
+            if (old) old.classList.remove('active');
+            g_activeTabId=id;
+            var el=document.getElementById(id);
+            if (el) el.classList.add('active');
+
+            // 根据当前是K线还是分时，显示/隐藏 筹码/竞价 按钮
+            var stockChipDom=document.getElementById('StockChip');
+            var beforeOpenDom=document.getElementById('BeforeOpen');
+            if (stockChipDom) stockChipDom.style.display=g_isKLine?'block':'none';
+            if (beforeOpenDom) beforeOpenDom.style.display=g_isKLine?'none':'block';
+        }
+
+        function showKLine(period)
+        {
+            g_isKLine=true;
+            document.getElementById('KLine').style.display='block';
+            document.getElementById('Minute').style.display='none';
+            if (minuteControl) minuteControl.Hide();
+            if (klineControl)
+            {
+                klineControl.Hide();
+                klineControl.ChangePeriod(period);
+            }
+        }
+
+        function showMinute(dayCount)
+        {
+            g_isKLine=false;
+            document.getElementById('Minute').style.display='block';
+            document.getElementById('KLine').style.display='none';
+            if (klineControl) klineControl.Hide();
+            if (minuteControl) minuteControl.ChangeDayCount(dayCount);
+        }
+
+
         function DeleteLocalIndex(e, name)
         {
             alert(`[DeleteLocalIndex]${name}`);
@@ -1624,7 +1894,7 @@
             alert(`[SelectLocalIndex]${name}`);
         }
 
-        $(function () 
+        $(function ()
         {
             const font = new FontFace("iconfont",`url('../jscommon/iyxchart.resource/font/iconfont.woff?t=1690947130935') format('woff')`);
             document.fonts.add(font);    //把字体添加到 document.font（FontFaceSet）中
@@ -1632,11 +1902,14 @@
 
             KLineChart.InitalStyle();
 
-            var klineControl=new KLineChart(document.getElementById('kline'));
+            klineControl=new KLineChart(document.getElementById('kline'));
+            minuteControl=new MinuteChart(document.getElementById('MinuteCtrl'));
+
              // 等待到所有的字体都加载完毕
-             document.fonts.ready.then(() => 
+             document.fonts.ready.then(() =>
             {
                 klineControl.Create();
+                minuteControl.Create();
             });
 
             klineControl.LoadLocalIndex();
@@ -1656,18 +1929,84 @@
 
             var hqKeyboard=new JSPopKeyboard();
 
-            //执行指标
+            // ---- 周期 Tab 点击绑定 ----
+            document.getElementById('MinuteDay').onmousedown=(e)=>{ showMinute(1); setActiveTab('MinuteDay'); };
+            document.getElementById('Minute5Day').onmousedown=(e)=>{ showMinute(5); setActiveTab('Minute5Day'); };
+            document.getElementById('KLineDay').onmousedown=(e)=>{ showKLine(0); setActiveTab('KLineDay'); };
+            document.getElementById('KLineWeek').onmousedown=(e)=>{ showKLine(1); setActiveTab('KLineWeek'); };
+            document.getElementById('KLineMonth').onmousedown=(e)=>{ showKLine(2); setActiveTab('KLineMonth'); };
+            document.getElementById('KLineYear').onmousedown=(e)=>{ showKLine(3); setActiveTab('KLineYear'); };
+            document.getElementById('KLineMinute').onmousedown=(e)=>{ showKLine(4); setActiveTab('KLineMinute'); };
+            document.getElementById('KLine5Minute').onmousedown=(e)=>{ showKLine(5); setActiveTab('KLine5Minute'); };
+            document.getElementById('KLine15Minute').onmousedown=(e)=>{ showKLine(6); setActiveTab('KLine15Minute'); };
+            document.getElementById('KLine30Minute').onmousedown=(e)=>{ showKLine(7); setActiveTab('KLine30Minute'); };
+
+            document.getElementById('StockChip').onmousedown=(e)=>{ klineControl.EnableStockChip(); };
+            document.getElementById('BeforeOpen').onmousedown=(e)=>{ minuteControl.EnableBeforeOpen(); };
+            document.getElementById('DrawTool').onmousedown=(e)=>
+            {
+                if (g_isKLine) klineControl.ShowDrawTool();
+                else minuteControl.ShowDrawTool();
+            };
+
+            // 顶部 Tab 风格按钮
+            document.getElementById('WhiteStyle').onmousedown=(e)=>
+            {
+                klineControl.ChangeStyle('white');
+                minuteControl.ReloadResource();
+                hqKeyboard.ReloadResource();
+            };
+            document.getElementById('BlackStyle').onmousedown=(e)=>
+            {
+                klineControl.ChangeStyle('black');
+                minuteControl.ReloadResource();
+                hqKeyboard.ReloadResource();
+            };
+
+            // ---- 搜索框 ----
+            document.getElementById('SearchInput').addEventListener('keydown',(e)=>
+            {
+                if (e.key==='Enter')
+                {
+                    var symbol=document.getElementById('SearchInput').value.trim();
+                    if (symbol)
+                    {
+                        klineControl.ChangeSymbol(symbol);
+                        minuteControl.ChangeSymbol(symbol);
+                        hqKeyboard.Hide();
+                    }
+                }
+            });
+
+            document.getElementById('SearchClear').addEventListener('click',()=>
+            {
+                document.getElementById('SearchInput').value='';
+                document.getElementById('SearchInput').focus();
+            });
+
+            // ---- 公式编辑器按钮 ----
             $("#index_run").click(function() { klineControl.ExecuteIndexScript(); } );
             $("#add_index_window").click(function() { klineControl.AddScriptIndexWindow(); } );
-            
+
             $("#index_check").click(function() { klineControl.CheckIndexScript(); } );
             $("#index_save").click(function() { klineControl.SaveLocalIndex(); } );
             $("#overlayindex_run").click(function(){ klineControl.ExecuteOverlayIndexScript(); })
             $("#SplashScreen").click(function(){ klineControl.SplashScreen(true); })
             $("#SplashScreen2").click(function(){ klineControl.SplashScreen(false); })
 
-            $("#style_black").click(function(){ klineControl.ChangeStyle('black'); hqKeyboard.ReloadResource(); })
-            $("#style_white").click(function(){ klineControl.ChangeStyle('white'); hqKeyboard.ReloadResource(); })
+            // 工具栏风格按钮（与顶部 Tab 按钮功能相同）
+            $("#style_black").click(function()
+            {
+                klineControl.ChangeStyle('black');
+                minuteControl.ReloadResource();
+                hqKeyboard.ReloadResource();
+            })
+            $("#style_white").click(function()
+            {
+                klineControl.ChangeStyle('white');
+                minuteControl.ReloadResource();
+                hqKeyboard.ReloadResource();
+            })
 
             $("#showAllKLine").click(function(){ klineControl.ShowAllKLine(); })
 
@@ -1678,23 +2017,24 @@
             JSComplier.AddFunction({ Name:'FUNC_ALPHA', Description:'自定义Alpha函数', IsDownload:true, Invoke:(obj)=>{ return HQData.FUNC_ALPHA(obj); } } );
             JSComplier.AddVariant({ Name:'VAR_DEMO',   Description:'自定义变量1' } );
 
-            
+
             hqKeyboard.Keyboard.Option.EventCallback=
             [
                 {
                     event:JSCHART_EVENT_ID.ON_KEYBOARD_SELECTED,
                     callback:(event, data, obj)=>
-                    { 
+                    {
                         console.log("[JSCHART_EVENT_ID.ON_KEYBOARD_SELECTED] data", data)
                         hqKeyboard.Hide();
 
                         if (!data || !data.RowData) return;
-                        
+
                         var selItem=data.RowData;
                         if (selItem.Data.Type===0)
                         {
                             klineControl.Chart.Focus();
                             klineControl.ChangeSymbol(selItem.Data.Symbol);
+                            minuteControl.ChangeSymbol(selItem.Data.Symbol);
                         }
                         else if (selItem.Data.Type===1)
                         {
@@ -1720,34 +2060,189 @@
 
             document.addEventListener('keydown', (event) =>
             {
-                var div=document.getElementById('kline'); 
+                var div=document.getElementById('kline');
                 if (div.contains(event.target) && event.target.tagName!="INPUT") //在K线上才出来键盘精灵
                 {
-                    hqKeyboard.OnGlobalKeydown(event) 
+                    hqKeyboard.OnGlobalKeydown(event)
                 }
             });
 
-            document.addEventListener("mousedown", (event)=>{  hqKeyboard.OnGlobalMouseDown(event) })
+            document.addEventListener("mousedown", (event)=>{ hqKeyboard.OnGlobalMouseDown(event) })
         })
 
-      
-    </script>  
 
-</body>  
+    </script>
+
+</body>
 </html>
-
 
 
 <style>
 
-#kline
+/* ---- CSS 变量（皮肤颜色） ---- */
+:root
 {
-    width:100%;
-    height:400px;
-    position: relative;
-    overflow:hidden;
+    --BGColor: rgb(0,0,0);
+    --TabItemBG: rgb(38,38,38);
+    --BorderColor: rgb(74,74,74);
+    --TabTextColor: rgb(204,204,204);
 }
 
+/* 白色风格 */
+:root[tkchart_style='0'],
+:root[tkchart_style='defined']
+{
+    --BGColor: rgb(255,255,255);
+    --TabItemBG: rgb(242,242,242);
+    --BorderColor: rgb(206,206,206);
+    --TabTextColor: rgb(90,90,90);
+}
+
+/* 黑色风格 */
+:root[tkchart_style='1']
+{
+    --BGColor: rgb(0,0,0);
+    --TabItemBG: rgb(38,38,38);
+    --BorderColor: rgb(74,74,74);
+    --TabTextColor: rgb(204,204,204);
+}
+
+html, body
+{
+    margin: 0;
+    padding: 0;
+}
+
+body
+{
+    font-size: 14px;
+    background-color: var(--BGColor);
+}
+
+/* ---- 顶部周期 Tab 栏 ---- */
+#PeriodTab
+{
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 35px;
+    padding: 0 5px; /* 增加一点左右内边距 */
+    border-bottom: solid 1px var(--BorderColor);
+    background-color: var(--BGColor);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* ---- 图表容器 ---- */
+#ChartContainer
+{
+    width: 100%;
+    background-color: var(--BGColor);
+    overflow: hidden;
+}
+
+#KLine
+{
+    width: 100%;
+    height: 100%;
+}
+
+#kline
+{
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+#Minute
+{
+    width: 100%;
+    height: 100%;
+}
+
+#MinuteCtrl
+{
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ---- Tab 样式 ---- */
+.TabItem
+{
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    padding-right: 8px;
+    justify-content: center;
+    line-height: normal;    /* 消除行高带来的偏移 */
+    height: 100%;
+    border-right: solid 1px var(--BorderColor);
+    cursor: default;
+    background-color: var(--TabItemBG);
+    color: var(--TabTextColor);
+    font-size: 13px;
+    white-space: nowrap;
+    box-sizing: border-box;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.TabItem:hover
+{
+    filter: brightness(1.15);
+}
+
+.TabItem.active
+{
+    color: rgb(54,162,231);
+    border-bottom: 2px solid rgb(54,162,231);
+}
+
+.SpaceItem
+{
+    flex: 1;
+}
+
+/* ---- 搜索框 ---- */
+.SearchInput
+{
+    height: 24px;
+    padding: 0 6px;
+    margin: 0 4px;
+    border: 1px solid var(--BorderColor);
+    background-color: var(--TabItemBG);
+    color: var(--TabTextColor);
+    font-size: 12px;
+    width: 120px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.SearchInput:focus
+{
+    border-color: rgb(54,162,231);
+}
+
+.SearchClear
+{
+    padding: 0 4px;
+    cursor: pointer;
+    color: var(--TabTextColor);
+    font-size: 14px;
+    flex-shrink: 0;
+    line-height: 35px;
+}
+
+.SearchClear:hover
+{
+    color: rgb(54,162,231);
+}
+
+/* ---- 公式编辑器工具区 ---- */
 .tools {
     width:100%;
 }
@@ -1821,6 +2316,5 @@
 .tools .cache li span{
     float:right;
     margin-right:5px;
-} 
+}
 </style>
-       
