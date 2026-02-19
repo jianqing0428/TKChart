@@ -16,6 +16,7 @@
 
     <!-- 周期切换顶栏 -->
     <div id="PeriodTab">
+        <input id="SearchInput" type="text" class="SearchInput" placeholder="代码/名称" autocomplete="off"/>
         <div id="MinuteDay" class="TabItem">分时</div>
         <div id="Minute5Day" class="TabItem">5日</div>
         <div id="KLineDay" class="TabItem active">日线</div>
@@ -31,7 +32,6 @@
         <div id="StockChip" class="TabItem">筹码</div>
         <div id="BeforeOpen" class="TabItem" style="display:none;">竞价</div>
         <div id="DrawTool" class="TabItem">画线</div>
-        <input id="SearchInput" type="text" class="SearchInput" placeholder="代码/名称" autocomplete="off"/>
         <span id="SearchClear" class="SearchClear">✕</span>
         <div id="WhiteStyle" class="TabItem">白色风格</div>
         <div id="BlackStyle" class="TabItem">黑色风格</div>
@@ -58,10 +58,10 @@
             </select>
 
             <input type="checkbox" id="exclude_y" name="exclude_y"/>
-            <label for="exclude_y">指标不参与Y轴计算</label>
+            <label for="exclude_y">不参与Y轴计算</label>
 
-            <button class="toolsButton" id="index_run">执行(切换指标)</button>
-            <button class="toolsButton" id="add_index_window">执行(新建窗口指标)</button>
+            <button class="toolsButton" id="index_run">执行(切换)</button>
+            <button class="toolsButton" id="add_index_window">执行(新建)</button>
             <button class="toolsButton" id="index_check">语法检测</button>
             <button class="toolsButton" id="index_save">保存指标</button>
 
@@ -74,16 +74,16 @@
             <label for="overlay_y">叠加指标使用独立坐标 </label>
 
             <button class="toolsButton" id="overlayindex_run">执行(叠加指标)</button>
-
+<!--
             <button class="toolsButton" id="style_black">黑色风格</button>
             <button class="toolsButton" id="style_white">白色风格</button>
             <button class="toolsButton" id="showAllKLine">显示全部K线</button>
 
             <span>K线支持键盘精灵</span>
-
+   
             <a href="https://jones2000.blog.csdn.net/article/details/129125330" target="_blank">函数帮助</a>
-            <a href="https://github.com/jones2000/TKChart" target="_blank">TKChart插件地址</a>
-
+            <a href="" target="_blank">TKChart插件地址</a>
+         -->
         </div>
         <div class="table" id="tools_table">
             <table cellpadding="0" cellspacing="0">
@@ -2126,6 +2126,7 @@ body
     align-items: center;
     width: 100%;
     height: 35px;
+    padding: 0 5px; /* 增加一点左右内边距 */
     border-bottom: solid 1px var(--BorderColor);
     background-color: var(--BGColor);
     box-sizing: border-box;
@@ -2173,6 +2174,8 @@ body
     align-items: center;
     padding-left: 8px;
     padding-right: 8px;
+    justify-content: center;
+    line-height: normal;    /* 消除行高带来的偏移 */
     height: 100%;
     border-right: solid 1px var(--BorderColor);
     cursor: default;
