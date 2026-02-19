@@ -458,7 +458,17 @@
                 var self=this;
                 $(window).resize(function() { self.OnSize(); });    //绑定窗口大小变化事件
 
+                // ---- TradingView 默认深色皮肤初始化 ----
                 var resource=JSChart.GetResource();
+                resource.BGColor             = '#131722';
+                resource.UpBarColor          = '#089981';
+                resource.DownBarColor        = '#f23645';
+                resource.FrameBorderPen      = 'rgba(42,46,57,0.8)';
+                resource.FrameSplitPen       = 'rgba(42,46,57,0.5)';
+                resource.FrameSplitTextColor = '#d1d4dc';
+                resource.DefaultTextColor    = '#d1d4dc';
+                resource.FrameTitleBGColor   = '#131722';
+
                 this.DivKLine.style.backgroundColor=resource.BGColor; //设置最外面的div背景
 
                 this.Option.EventCallback=
@@ -1040,10 +1050,24 @@
 
             this.ChangeStyle=function(styleName)
             {
+                // TradingView 统一 K 线颜色（切换皮肤时保持不变）
+                var TV_UP   = '#089981';
+                var TV_DOWN = '#f23645';
+
                 var buttonColor=[null,null];
                 if (styleName=='black')
                 {
-                    var style=TKChartStyle.GetStyleConfig(STYLE_TYPE_ID.BLACK_ID); //读取风格配置
+                    var style=TKChartStyle.GetStyleConfig(STYLE_TYPE_ID.BLACK_ID);
+
+                    // TradingView 深色主题覆盖
+                    style.BGColor             = '#131722';
+                    style.FrameBorderPen      = 'rgba(42,46,57,0.8)';
+                    style.FrameSplitPen       = 'rgba(42,46,57,0.5)';
+                    style.FrameSplitTextColor = '#d1d4dc';
+                    style.DefaultTextColor    = '#d1d4dc';
+                    style.FrameTitleBGColor   = '#131722';
+                    style.UpBarColor          = TV_UP;
+                    style.DownBarColor        = TV_DOWN;
 
                     buttonColor[0]="rgb(156,156,156)";
                     buttonColor[1]="rgb(255,255,255)";
@@ -1052,8 +1076,17 @@
                 }
                 else if (styleName=='white')
                 {
-                    var style=TKChartStyle.GetStyleConfig(STYLE_TYPE_ID.WHITE_ID); //读取风格配置
-                    style.BGColor='rgb(255,255,255)';
+                    var style=TKChartStyle.GetStyleConfig(STYLE_TYPE_ID.WHITE_ID);
+
+                    // TradingView 浅色主题覆盖
+                    style.BGColor             = '#ffffff';
+                    style.FrameBorderPen      = 'rgba(240,243,250,1)';
+                    style.FrameSplitPen       = 'rgba(240,243,250,1)';
+                    style.FrameSplitTextColor = '#131722';
+                    style.DefaultTextColor    = '#131722';
+                    style.FrameTitleBGColor   = '#ffffff';
+                    style.UpBarColor          = TV_UP;
+                    style.DownBarColor        = TV_DOWN;
 
                     buttonColor[0]="rgb(156,156,156)";
                     buttonColor[1]="rgb(105,105,105)";
@@ -1081,8 +1114,8 @@
                     }
 
                     var frameItem=subFrame.Frame;
-                    frameItem.YLineExtend=[{ Width:5, Color:penBorder}, { Width:5, Color:penBorder} ];
-                    frameItem.XLineExtend=[{ Mode:1, Color:penBorder }];
+                    frameItem.YLineExtend=[{ Width:5, Color:penBorder}, { Width:5, Color:penBorder}];
+                    frameItem.XLineExtend=[{ Mode:1, Color:penBorder}];
 
                     for(var j=0;j<subFrame.OverlayIndex.length;++j)
                     {
@@ -1105,10 +1138,9 @@
                 style.ToolbarButtonStyle=1;
                 style.OverlayFrame.BolderPen=style.FrameBorderPen;
                 JSChart.SetStyle(style);
-                this.DivKLine.style.backgroundColor=style.BGColor;   //修改div背景色
+                this.DivKLine.style.backgroundColor=style.BGColor;
 
-                this.Chart.ReloadResource({ Resource:null, Draw:true , Update:true });  //动态更新颜色配置
-
+                this.Chart.ReloadResource({ Resource:null, Draw:true, Update:true });
             }
 
             this.OnTitleDraw=function(event, data, obj)
@@ -2080,32 +2112,35 @@
 
 <style>
 
-/* ---- CSS 变量（皮肤颜色） ---- */
+/* ================================================================
+   CSS 变量 — TradingView 皮肤配色
+   默认深色（未设置 tkchart_style 时等同于黑色皮肤）
+   ================================================================ */
 :root
 {
-    --BGColor: rgb(0,0,0);
-    --TabItemBG: rgb(38,38,38);
-    --BorderColor: rgb(74,74,74);
-    --TabTextColor: rgb(204,204,204);
+    --BGColor:      #131722;
+    --TabItemBG:    #1e222d;
+    --BorderColor:  rgba(42,46,57,0.8);
+    --TabTextColor: #d1d4dc;
 }
 
-/* 白色风格 */
+/* 浅色皮肤 (tkchart_style="0") */
 :root[tkchart_style='0'],
 :root[tkchart_style='defined']
 {
-    --BGColor: rgb(255,255,255);
-    --TabItemBG: rgb(242,242,242);
-    --BorderColor: rgb(206,206,206);
-    --TabTextColor: rgb(90,90,90);
+    --BGColor:      #ffffff;
+    --TabItemBG:    #f0f3fa;
+    --BorderColor:  #e0e3eb;
+    --TabTextColor: #131722;
 }
 
-/* 黑色风格 */
+/* 深色皮肤 (tkchart_style="1") */
 :root[tkchart_style='1']
 {
-    --BGColor: rgb(0,0,0);
-    --TabItemBG: rgb(38,38,38);
-    --BorderColor: rgb(74,74,74);
-    --TabTextColor: rgb(204,204,204);
+    --BGColor:      #131722;
+    --TabItemBG:    #1e222d;
+    --BorderColor:  rgba(42,46,57,0.8);
+    --TabTextColor: #d1d4dc;
 }
 
 html, body
@@ -2143,7 +2178,7 @@ body
     display: flex !important;
     align-items: center !important;
     width: 100%;
-    height: 35px;
+    height: 38px;
     padding: 0 5px;
     border-bottom: solid 1px var(--BorderColor);
     background-color: var(--BGColor);
@@ -2194,7 +2229,7 @@ body
     align-items: center !important;
     justify-content: center !important;
     height: 100% !important;
-    padding: 0 12px;
+    padding: 0 15px;
     line-height: 1 !important;
     border-right: solid 1px var(--BorderColor);
     cursor: pointer;
@@ -2252,7 +2287,7 @@ body
 .SearchClear
 {
     padding: 0 4px;
-    margin-right: 15px;   /* 搜索组右侧与第一个周期 Tab 的间距 */
+    margin-right: 20px;   /* 搜索组右侧与第一个周期 Tab 的间距 */
     cursor: pointer;
     color: var(--TabTextColor);
     font-size: 14px;
@@ -2336,14 +2371,14 @@ body
 
 .tools .table table {
     width: 100%;
-    border-left: 1px solid #ccc;
-    border-top: 1px solid #ccc;
+    border-left: 1px solid #e0e3eb;
+    border-top: 1px solid #e0e3eb;
     margin-left: 1px;
 }
 
 .tools .table table tbody td, .tools .table table thead th {
-    border-right: 1px solid #ccc;
-    border-bottom: 1px solid #ccc;
+    border-right: 1px solid #e0e3eb;
+    border-bottom: 1px solid #e0e3eb;
     height: 25px;
     padding: 5px;
     width: 95px;
@@ -2362,7 +2397,7 @@ body
 .tools .cache {
     float: left;
     width: 19.8%;
-    border: 1px solid #ccc;
+    border: 1px solid #e0e3eb;
     height: 257px;
     margin-left: -1px;
     overflow-y: auto;
