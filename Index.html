@@ -17,6 +17,7 @@
     <!-- 周期切换顶栏 -->
     <div id="PeriodTab">
         <input id="SearchInput" type="text" class="SearchInput" placeholder="代码/名称" autocomplete="off"/>
+        <span id="SearchClear" class="SearchClear">✕</span>
         <div id="MinuteDay" class="TabItem">分时</div>
         <div id="Minute5Day" class="TabItem">5日</div>
         <div id="KLineDay" class="TabItem active">日线</div>
@@ -32,7 +33,6 @@
         <div id="StockChip" class="TabItem">筹码</div>
         <div id="BeforeOpen" class="TabItem" style="display:none;">竞价</div>
         <div id="DrawTool" class="TabItem">画线</div>
-        <span id="SearchClear" class="SearchClear">✕</span>
         <div id="WhiteStyle" class="TabItem">白色风格</div>
         <div id="BlackStyle" class="TabItem">黑色风格</div>
     </div>
@@ -311,8 +311,8 @@
                 TooltipDialog:{ Enable:true, Style:1 },
                 SelectRectDialog:{ Enable:true },
                 KLineTooltip:{ Enable:true, EnableKeyDown:false },
-                FloatTooltip:{ Enable:true, },
-                SmallFloatTooltip:{ Enable:true },
+                FloatTooltip:{ Enable:false, },
+                SmallFloatTooltip:{ Enable:false },
                 SearchIndexDialog:{ Enable:true },
                 ModifyIndexParamDialog:{ Enable:true },
 
@@ -653,7 +653,7 @@
 
                 this.UpdateWindowsSelectDOM();
             }
-
+ 
             this.OnDeleteFrame=function(event, data, obj)
             {
                 var selectDom=document.getElementById('window_index');
