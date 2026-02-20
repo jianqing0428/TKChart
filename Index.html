@@ -127,16 +127,19 @@
 
         </div><!-- /.fep-top -->
 
-        <!-- Middle section: Editor (left) | Status/List (right) -->
+        <!-- Middle section: Editor (left) | Resizer | Status/List (right) -->
         <div class="fep-middle">
 
             <!-- Left: CodeMirror editor -->
-            <div class="fep-editor-col">
+            <div class="fep-editor-col" id="fepEditorCol">
                 <textarea id="tools_code"></textarea>
             </div>
 
+            <!-- Vertical drag handle between editor and sidebar -->
+            <div class="fep-inner-resizer" id="fepInnerResizer"></div>
+
             <!-- Right: tabbed status / list panel -->
-            <div class="fep-status-col">
+            <div class="fep-status-col" id="fepStatusCol">
                 <div class="fep-tab-bar">
                     <button class="fep-tab active" data-tab="list">指标列表</button>
                     <button class="fep-tab"         data-tab="test">测试结果</button>
@@ -2524,6 +2527,44 @@
                 });
             })();
 
+            // ================================================================
+            // Inner resizer — drag to resize editor col ↔ sidebar col
+            // ================================================================
+            (function() {
+                var innerResizer = document.getElementById('fepInnerResizer');
+                var statusCol    = document.getElementById('fepStatusCol');
+                var panel        = document.getElementById('floatEditorPanel');
+                var startX, startW;
+
+                innerResizer.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    startX = e.clientX;
+                    startW = statusCol.offsetWidth;
+                    innerResizer.classList.add('dragging');
+
+                    function onMove(e) {
+                        // 向右拖 → delta>0 → 侧边栏缩小；向左拖 → 侧边栏扩大
+                        var delta  = e.clientX - startX;
+                        var newW   = startW - delta;
+                        // 侧边栏宽度限定在 [120px, 面板宽度的 60%]
+                        var maxW   = Math.round(panel.offsetWidth * 0.60);
+                        newW = Math.max(120, Math.min(maxW, newW));
+                        statusCol.style.width = newW + 'px';
+                        // 通知 CodeMirror 重新计算尺寸，防止布局溢出
+                        if (fepOpen) fepResizeEditor();
+                    }
+
+                    function onUp() {
+                        innerResizer.classList.remove('dragging');
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup',   onUp);
+                    }
+
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup',   onUp);
+                });
+            })();
+
             // Keyboard isolation — 冒泡阶段（不传 true / 默认 false）：
             // CodeMirror 先在目标阶段完整处理 keydown（Backspace / Delete / Ctrl+A 等），
             // 之后冒泡到此处再阻止传播，避免图表快捷键响应。
@@ -2690,7 +2731,7 @@ select, input[type="text"], input[type="search"]
     width: 100%;
     height: 38px;
     padding: 0 5px;
-    border-bottom: solid 1px var(--BorderColor);
+    border-bottom: solid 4px #434651;   /* 与 floatEditorPanel 左侧 resizer 保持一致 */
     background-color: var(--BGColor);
     box-sizing: border-box;
     overflow: hidden;
@@ -3102,18 +3143,36 @@ select, input[type="text"], input[type="search"]
     overflow: hidden;
 }
 
-/* Left: CodeMirror column */
+/* Left: CodeMirror column — flex:1 自动填满剩余宽度 */
 .fep-editor-col
 {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-right: 1px solid #434651;
+    min-width: 120px;
     position: relative;
+    /* border-right 由 fep-inner-resizer 取代 */
 }
 
-/* Right: status / list column */
+/* ── 内部竖向拖动分割线 (editor ↔ sidebar) ────────────────────── */
+/* 样式与外侧 .fep-resizer 完全一致: 4px / #434651 / col-resize    */
+.fep-inner-resizer
+{
+    flex-shrink: 0;
+    width: 4px;
+    background: #434651;
+    cursor: col-resize;
+    transition: background 0.15s;
+    z-index: 5;
+}
+.fep-inner-resizer:hover,
+.fep-inner-resizer.dragging
+{
+    background: #2962ff;
+}
+
+/* Right: status / list column — 固定初始宽度，JS 拖拽覆盖 */
 .fep-status-col
 {
     width: 200px;
@@ -3121,6 +3180,7 @@ select, input[type="text"], input[type="search"]
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 120px;
 }
 
 /* ── Right-column tab bar ─────────────────────────────────────── */
