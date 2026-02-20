@@ -183,6 +183,93 @@
     <script src="../jscommon/iyxchart.resource/js/codemirror/codemirror.js"></script>
     <script src="../jscommon/iyxchart.resource/js/codemirror/javascript.js"></script>
 
+    <!-- IYX 麦语言公式模式 — 独立 tokenizer，不依赖 overlayMode，必须在 fromTextArea() 之前定义 -->
+    <script>
+    (function() {
+        var DATA_KWORDS = new Set([
+            'CLOSE','OPEN','HIGH','LOW','VOL','AMOUNT','VOLR','CAPITAL',
+            'C','O','H','L','V','A',
+            'BARPOS','BARSCOUNT','BACKSET','BARSLAST',
+            'DATE','TIME','DAY','WEEK','MONTH','YEAR',
+            'ISLASTBAR','ISUP','ISDOWN'
+        ]);
+        var COLOR_KWORDS = new Set([
+            'COLORRED','COLORGREEN','COLORBLUE','COLORWHITE','COLORYELLOW',
+            'COLORBLACK','COLORCYAN','COLORMAGENTA',
+            'COLORLIGHTRED','COLORLIGHTGREEN','COLORLIGHTBLUE',
+            'COLORLIGHTYELLOW','COLORLIGHTCYAN','COLORLIGHTMAGENTA',
+            'COLORREF',
+            'COLOR0','COLOR1','COLOR2','COLOR3','COLOR4',
+            'COLOR5','COLOR6','COLOR7','COLOR8','COLOR9'
+        ]);
+        var BUILTIN_FUNS = new Set([
+            'MA','EMA','SMA','WMA','DMA','EXPMA',
+            'MACD','RSI','KDJ','BOLL','ATR','CCI','WR','BIAS','DMI','ADX',
+            'ROC','MOM','TRIX','CR','PSY',
+            'CROSS','LONGCROSS','COUNT','COUNTIF','SUM','FILTER',
+            'ABS','MAX','MIN','ROUND','CEILING','FLOOR','MOD',
+            'IF','IFF','IFN',
+            'DRAWTEXT','DRAWKLINE','DRAWICON','DRAWARROW','DRAWRECTREL',
+            'DRAWLINE','DRAWNUMBER','FILLRGN','PLOYLINE','SLOPE',
+            'ALIGN0','ALIGN1','ALIGN2','ALIGN3',
+            'VALIGN0','VALIGN1','VALIGN2','VALIGN3',
+            'FONTSIZE8','FONTSIZE9','FONTSIZE10','FONTSIZE11','FONTSIZE12',
+            'FONTSIZE14','FONTSIZE16','FONTSIZE18','FONTSIZE20','FONTSIZE24',
+            'STICK','DOTLINE','NODRAW','NOFRAME','NOAXIS',
+            'LINETHICK1','LINETHICK2','LINETHICK3','LINETHICK4','LINETHICK5',
+            'BACKGROUND','COLORSTICK','DRAWBAND',
+            'YMOVE','TEXTPOS','OFFSET','PARTLINE',
+            'RGBA','RGB','STICKLINE','LINENULL'
+        ]);
+
+        CodeMirror.defineMode('iyx-formula', function() {
+            return {
+                startState: function() { return { inBlock: false }; },
+                token: function(stream, state) {
+                    if (stream.eatSpace()) return null;
+
+                    // 块注释 { ... }
+                    if (state.inBlock) {
+                        if (stream.match('}')) state.inBlock = false;
+                        else stream.next();
+                        return 'comment';
+                    }
+                    if (stream.peek() === '{') {
+                        stream.next(); state.inBlock = true; return 'comment';
+                    }
+
+                    // 行注释 //
+                    if (stream.match('//')) { stream.skipToEnd(); return 'comment'; }
+
+                    // 字符串 '...'
+                    if (stream.peek() === "'") {
+                        stream.next();
+                        while (!stream.eol() && stream.peek() !== "'") stream.next();
+                        if (!stream.eol()) stream.next();
+                        return 'string';
+                    }
+
+                    // 数字
+                    if (stream.match(/^[0-9]+(\.[0-9]+)?/)) return 'number';
+
+                    // 标识符
+                    if (stream.match(/^[A-Za-z_][A-Za-z0-9_]*/)) {
+                        var word = stream.current().toUpperCase();
+                        if (DATA_KWORDS.has(word))   return 'keyword';
+                        if (COLOR_KWORDS.has(word))  return 'atom';
+                        if (BUILTIN_FUNS.has(word))  return 'builtin';
+                        return 'variable';
+                    }
+
+                    // 运算符 / 标点
+                    stream.next();
+                    return 'operator';
+                }
+            };
+        });
+    })();
+    </script>
+
     <script src="../jscommon/iyxchart.testdata/60000.sh.capital.kline.js"></script>
     <script src="../jscommon/iyxchart.testdata/60000.sh.NewsInteract.js"></script>
     <script src="../jscommon/iyxchart.testdata/60000.sh.BlockTrading.js"></script>
@@ -1131,7 +1218,7 @@
                         // ── 动态翻译 tab — semantic / draw interpretation ───
                         var xlateOut=document.getElementById('fep-xlate-output');
                         if (xlateOut)
-                            xlateOut.textContent=xlateLines.join('\n') || '(no draw commands)';
+                            xlateOut.innerHTML=xlateLines.join('\n') || '(no draw commands)';
 
                         // Auto-switch to 动态翻译 so the user sees semantics
                         fepSwitchTab('xlate');
@@ -1155,7 +1242,7 @@
 
                     // Clear translation panel on error
                     var xlateOut=document.getElementById('fep-xlate-output');
-                    if (xlateOut) xlateOut.textContent='';
+                    if (xlateOut) xlateOut.innerHTML='';
 
                     fepSwitchTab('test');
                 });
@@ -2217,7 +2304,7 @@
             var jsEditor;
             $('#tools_code').val(DEFAULT_CODE);
             jsEditor = CodeMirror.fromTextArea($('#tools_code').get(0), {
-                mode: "javascript",
+                mode: "iyx-formula",
                 lineNumbers: true,
                 indentWithTabs: false,
                 tabSize: 4,
@@ -3149,6 +3236,24 @@ select, input[type="text"], input[type="search"]
 {
     background: rgba(41,98,255,0.25) !important;
 }
+
+/* ── IYX 公式 token 颜色 (theme: fep-dark) ─────────────────────── */
+/* variable — 用户定义标签（如 MA1:）          */
+#floatEditorPanel .cm-s-fep-dark .cm-variable  { color: #eeffff; }
+/* keyword  — 数据字段: CLOSE OPEN HIGH LOW VOL */
+#floatEditorPanel .cm-s-fep-dark .cm-keyword   { color: #ff5370; }
+/* builtin  — 内置函数: MA EMA DRAWTEXT ...     */
+#floatEditorPanel .cm-s-fep-dark .cm-builtin   { color: #82aaff; }
+/* atom     — 颜色常量: COLORGREEN COLORRED ... */
+#floatEditorPanel .cm-s-fep-dark .cm-atom      { color: #89ddff; }
+/* number   — 数字字面量                        */
+#floatEditorPanel .cm-s-fep-dark .cm-number    { color: #f78c6c; }
+/* string   — 字符串字面量                      */
+#floatEditorPanel .cm-s-fep-dark .cm-string    { color: #c3e88d; }
+/* comment  — 注释 // 和 { }                    */
+#floatEditorPanel .cm-s-fep-dark .cm-comment   { color: #546e7a; font-style: italic; }
+/* operator — 运算符 / 标点 : ; ( ) + - * / > < */
+#floatEditorPanel .cm-s-fep-dark .cm-operator  { color: #89ddff; }
 
 /* ── Thin dark scrollbars throughout the panel ────────────────── */
 #floatEditorPanel ::-webkit-scrollbar           { width: 5px; height: 5px; }
