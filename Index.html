@@ -16,23 +16,24 @@
 
     <!-- 周期切换顶栏 -->
     <div id="PeriodTab">
-        <input id="SearchInput" type="text" class="SearchInput" placeholder="代码/名称" autocomplete="off"/>
+        <input id="SearchInput" type="text" class="SearchInput" data-i18n="search" placeholder="Symbol / Name" autocomplete="off"/>
         <span id="SearchClear" class="SearchClear">✕</span>
-        <div id="MinuteDay" class="TabItem">Time</div>
-        <div id="Minute5Day" class="TabItem">5D</div>
-        <div id="KLineDay" class="TabItem active">1D</div>
-        <div id="KLineWeek" class="TabItem">W</div>
-        <div id="KLineMonth" class="TabItem">M</div>
-        <div id="KLineYear" class="TabItem">Y</div>
-        <div id="KLineMinute" class="TabItem">1M</div>
-        <div id="KLine5Minute" class="TabItem">5M</div>
-        <div id="KLine15Minute" class="TabItem">15M</div>
-        <div id="KLine30Minute" class="TabItem">30M</div>
+        <div id="MinuteDay" class="TabItem" data-i18n="time">Time</div>
+        <div id="Minute5Day" class="TabItem" data-i18n="5d">5D</div>
+        <div id="KLineDay" class="TabItem active" data-i18n="1d">1D</div>
+        <div id="KLineWeek" class="TabItem" data-i18n="w">W</div>
+        <div id="KLineMonth" class="TabItem" data-i18n="m">M</div>
+        <div id="KLineYear" class="TabItem" data-i18n="y">Y</div>
+        <div id="KLineMinute" class="TabItem" data-i18n="1min">1M</div>
+        <div id="KLine5Minute" class="TabItem" data-i18n="5min">5M</div>
+        <div id="KLine15Minute" class="TabItem" data-i18n="15min">15M</div>
+        <div id="KLine30Minute" class="TabItem" data-i18n="30min">30M</div>
 
         <div class="SpaceItem"></div>
-        <div id="StockChip" class="TabItem">Chip</div>
-        <div id="BeforeOpen" class="TabItem" style="display:none;">Pre</div>
-        <div id="DrawTool" class="TabItem">Draw</div>
+        <div id="StockChip" class="TabItem" data-i18n="chip">Chip</div>
+        <div id="BeforeOpen" class="TabItem" style="display:none;" data-i18n="pre">Pre</div>
+        <div id="DrawTool" class="TabItem" data-i18n="draw">Draw</div>
+        <div id="LangBtn" class="TabItem LangBtn" data-i18n="lang">中</div>
         <div id="ThemeBtn" class="TabItem ThemeSwitcherBtn"><svg width="18" height="18" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 18a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M14 4.5V3h-1v1.5h1zM8.7 5.76l-1.06-1.06-.7.71 1.06 1.06.7-.7zM19.3 5.76l1.06-1.06.7.71-1.06 1.06-.7-.7zM4.5 13v1H3v-1h1.5zM21 13v1h1.5v-1H21zM5.76 19.3l-1.06 1.06.71.7 1.06-1.06-.7-.7zM18.24 19.3l1.06 1.06.7-.71-1.06-1.06-.7.7zM14 19.5V21h-1v-1.5h1z" fill="currentColor"/></svg></div>
     </div>
 
@@ -49,20 +50,20 @@
     <!-- 公式编辑器 -->
     <div class="tools">
         <div id="tools_top" class="top">
-            <span>指标名称：</span>
-            <input class="input" id="index_name" value="我的指标1"/>
+            <span data-i18n="idx-name">Indicator Name:</span>
+            <input class="input" id="index_name" value="MyIndicator1"/>
             <select class="changeIndex" id="window_index">
-                <option value="1">副图</option>
-                <option value="0">主图</option>
+                <option value="1" data-i18n="idx-sub">Sub Chart</option>
+                <option value="0" data-i18n="idx-main">Main Chart</option>
             </select>
 
             <input type="checkbox" id="exclude_y" name="exclude_y"/>
-            <label for="exclude_y">不参与Y轴计算</label>
+            <label for="exclude_y" data-i18n="idx-exclude">Ignore Y-Axis</label>
 
-            <button class="toolsButton" id="index_run">执行(切换)</button>
-            <button class="toolsButton" id="add_index_window">执行(新建)</button>
-            <button class="toolsButton" id="index_check">语法检测</button>
-            <button class="toolsButton" id="index_save">保存指标</button>
+            <button class="toolsButton" id="index_run" data-i18n="idx-run">Run (Switch)</button>
+            <button class="toolsButton" id="add_index_window" data-i18n="idx-new">Run (New)</button>
+            <button class="toolsButton" id="index_check" data-i18n="idx-check">Check Syntax</button>
+            <button class="toolsButton" id="index_save" data-i18n="idx-save">Save</button>
 
             <!--
             <button class="toolsButton" id="SplashScreen">冻住</button>
@@ -70,9 +71,9 @@
             -->
 
             <input type="checkbox" id="overlay_y" name="overlay_y"/>
-            <label for="overlay_y">叠加指标使用独立坐标 </label>
+            <label for="overlay_y" data-i18n="idx-overlay">Overlay Indep. Y</label>
 
-            <button class="toolsButton" id="overlayindex_run">执行(叠加指标)</button>
+            <button class="toolsButton" id="overlayindex_run" data-i18n="idx-overlay-run">Overlay Run</button>
 <!--
             <button class="toolsButton" id="style_black">黑色风格</button>
             <button class="toolsButton" id="style_white">白色风格</button>
@@ -88,8 +89,8 @@
             <table cellpadding="0" cellspacing="0">
                 <thead>
                     <tr>
-                        <th>参数</th>
-                        <th>数值</th>
+                        <th data-i18n="idx-param">Arguments</th>
+                        <th data-i18n="idx-value">Value</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -223,6 +224,61 @@
         var g_isKLine = true;           // 当前显示的是K线图(true)还是分时图(false)
         var g_activeTabId = 'KLineDay'; // 当前选中的tab id
         var g_currentTheme = 'black';   // 当前皮肤：'black' | 'white'
+        var g_currentLang  = 'EN';      // 当前语言：'EN' | 'CN'
+
+        // ================================================================
+        // 国际化字典
+        // ================================================================
+        var I18N_MAP = {
+            // EN map：按钮显示"中"表示"点我切到中文"
+            EN: {
+                'time':  'Time', '5d':    '5D',  '1d':    '1D',
+                'w':     'W',    'm':     'M',   'y':     'Y',
+                '1min':  '1M',   '5min':  '5M',  '15min': '15M', '30min': '30M',
+                'chip':  'Chip', 'pre':   'Pre', 'draw':  'Draw',
+                'search':'Symbol / Name',
+                'lang':  '中',   // 当前EN，按钮显示目标语言"中"
+                // 编辑器工具栏
+                'idx-name':'Indicator Name:', 'idx-sub':'Sub Chart',  'idx-main':'Main Chart',
+                'idx-exclude':'Ignore Y-Axis','idx-run':'Run (Switch)','idx-new':'Run (New)',
+                'idx-check':'Check Syntax',   'idx-save':'Save',
+                'idx-overlay':'Overlay Indep. Y','idx-overlay-run':'Overlay Run',
+                'idx-param':'Arguments',      'idx-value':'Value',
+            },
+            // CN map：按钮显示"EN"表示"点我切回英文"
+            CN: {
+                'time':  '分时',  '5d':    '5日',   '1d':    '日线',
+                'w':     '周线',  'm':     '月线',  'y':     '年线',
+                '1min':  '1分钟', '5min':  '5分钟', '15min': '15分钟', '30min': '30分钟',
+                'chip':  '筹码',  'pre':   '竞价',  'draw':  '画线',
+                'search':'代码/名称',
+                'lang':  'EN',   // 当前CN，按钮显示目标语言"EN"
+                // 编辑器工具栏
+                'idx-name':'指标名称：',       'idx-sub':'副图',       'idx-main':'主图',
+                'idx-exclude':'不参与Y轴计算', 'idx-run':'执行(切换)', 'idx-new':'执行(新建)',
+                'idx-check':'语法检测',        'idx-save':'保存指标',
+                'idx-overlay':'叠加指标独立坐标','idx-overlay-run':'执行(叠加)',
+                'idx-param':'参数',            'idx-value':'数值',
+            }
+        };
+
+        function switchLanguage()
+        {
+            var nextLang = (g_currentLang === 'EN') ? 'CN' : 'EN';
+            g_currentLang = nextLang;
+            var map = I18N_MAP[nextLang];
+            document.querySelectorAll('[data-i18n]').forEach(function(el)
+            {
+                var key  = el.getAttribute('data-i18n');
+                var text = map[key];
+                if (!text) return;
+                if (el.tagName === 'INPUT') {
+                    el.placeholder = text;          // 搜索框只更新 placeholder
+                } else if (!el.querySelector('svg')) {
+                    el.textContent = text;          // 普通 Tab 更新文字，跳过含 SVG 的图标按钮
+                }
+            });
+        }
 
         //简单的把K线控件封装下
         function KLineChart(divKLine)
@@ -415,8 +471,8 @@
                 Frame:  //子框架设置
                 [
                     {
-                        SplitCount:6,       // Y轴横线数
-                        XSplitCount:8,      // X轴竖线数（半边），共约16条
+                        SplitCount:12,      // Y轴横线数（增密，每格约40px）
+                        XSplitCount:15,     // X轴竖线数（半边），全图约30条
                         IsShowXLine:true,   // 显示竖向网格线
                         IsShowYLine:true,   // 显示横向网格线
                         //SplitType:1,
@@ -467,11 +523,19 @@
                 resource.UpBarColor          = '#089981';
                 resource.DownBarColor        = '#f23645';
                 resource.FrameBorderPen      = 'rgba(42,46,57,0.8)';
-                resource.FrameSplitPen       = 'rgba(200,200,200,0.15)'; // 网格线：浅灰低透明度，深蓝底上清晰可见
-                resource.FrameXLineDash      = [2,2];                    // 竖向网格虚线
-                resource.FrameSplitTextColor = '#d1d4dc';
-                resource.DefaultTextColor    = '#d1d4dc';
+                resource.FrameSplitPen       = 'rgba(200,200,200,0.25)';  // 网格线：浅灰低透明度，深蓝底上清晰可见
+                resource.FrameXLineDash      = [1,1];                    // 竖向网格虚线（细密）
+                resource.FrameSplitTextColor = '#707481';   // TV 深色坐标轴刻度色（比主文字暗一档）
+                resource.DefaultTextColor    = '#d1d4dc';   // TV 主文字色（淡灰）
                 resource.FrameTitleBGColor   = '#131722';
+                // TradingView 字体：全量覆盖所有 canvas 文字
+                var _dpr = GetDevicePixelRatio();
+                var _f   = _dpr * 12 + 'px "Trebuchet MS", Arial, sans-serif';
+                resource.DefaultTextFont          = _f;   // 通用文字
+                resource.FrameSplitTextFont       = _f;   // 坐标轴刻度（Time / Price 标签）
+                resource.TitleFont                = _f;   // 指标标题栏（MACD / VOL / MA）
+                resource.OverlayFrame.TitleFont   = _f;   // 叠加指标名称
+                resource.CorssCursorTextFont      = _f;   // 十字光标文字
 
                 this.DivKLine.style.backgroundColor=resource.BGColor; //设置最外面的div背景
 
@@ -550,6 +614,10 @@
                     {
                         event:JSCHART_EVENT_ID.ON_CALCULATE_CHIP_DATA,
                         callback:(event, data, obj)=>{ this.OnCalculateChipData(event, data, obj); }
+                    },
+                    {
+                        event:JSCHART_EVENT_ID.ON_SIZE_FRAME,
+                        callback:(event, data, obj)=>{ this.OnSizeFrame(event, data, obj); }
                     }
 
                 ];
@@ -769,6 +837,23 @@
                 //this.DivKLine.style.width=width+'px';
                 this.DivKLine.style.height=height+'px';
                 //this.Chart.OnSize(option);
+            }
+
+            // 动态网格密度：根据子帧像素高度自动调节横向格线数
+            this.OnSizeFrame=function(event, data, obj)
+            {
+                if (!data || !data.SubFrame) return;
+                var TARGET_CELL_PX = 45; // 目标每格约 45px，贴近 TradingView 视觉密度
+                for (var i=0; i<data.SubFrame.length; i++)
+                {
+                    var frame = data.SubFrame[i].Frame;
+                    if (!frame || !frame.ChartBorder || !frame.YSplitOperator) continue;
+                    var chartH = frame.ChartBorder.GetChartHeight();
+                    if (!chartH || chartH<=0) continue;
+                    var ideal = Math.round(chartH / TARGET_CELL_PX);
+                    // 限制在合理范围，避免过密/过疏
+                    frame.YSplitOperator.SplitCount = Math.max(4, Math.min(20, ideal));
+                }
             }
 
             this.ChangeSymbol=function(symbol)
@@ -1054,9 +1139,10 @@
 
             this.ChangeStyle=function(styleName)
             {
-                // TradingView 统一 K 线颜色（切换皮肤时保持不变）
+                // TradingView 统一颜色与字体（切换皮肤时保持不变）
                 var TV_UP   = '#089981';
                 var TV_DOWN = '#f23645';
+                var TV_FONT = GetDevicePixelRatio() * 12 + 'px "Trebuchet MS", Arial, sans-serif';
 
                 var buttonColor=[null,null];
                 if (styleName=='black')
@@ -1066,12 +1152,18 @@
                     // TradingView 深色主题覆盖
                     style.BGColor             = '#131722';
                     style.FrameBorderPen      = 'rgba(42,46,57,0.8)';
-                    style.FrameSplitPen       = 'rgba(200,200,200,0.15)';
-                    style.FrameSplitTextColor = '#d1d4dc';
+                    style.FrameSplitPen       = 'rgba(200,200,200,0.25)';
+                    style.FrameSplitTextColor = '#707481';  // 坐标轴刻度色
                     style.DefaultTextColor    = '#d1d4dc';
                     style.FrameTitleBGColor   = '#131722';
                     style.UpBarColor          = TV_UP;
                     style.DownBarColor        = TV_DOWN;
+                    style.DefaultTextFont           = TV_FONT;
+                    style.FrameSplitTextFont        = TV_FONT;
+                    style.TitleFont                 = TV_FONT;
+                    if (!style.OverlayFrame) style.OverlayFrame={};
+                    style.OverlayFrame.TitleFont    = TV_FONT;
+                    style.CorssCursorTextFont       = TV_FONT;
 
                     buttonColor[0]="rgb(156,156,156)";
                     buttonColor[1]="rgb(255,255,255)";
@@ -1085,12 +1177,18 @@
                     // TradingView 浅色主题覆盖
                     style.BGColor             = '#ffffff';
                     style.FrameBorderPen      = 'rgba(240,243,250,1)';
-                    style.FrameSplitPen       = 'rgba(0,0,0,0.1)';
-                    style.FrameSplitTextColor = '#131722';
+                    style.FrameSplitPen       = 'rgba(240,243,250,1)';  // = #f0f3fa TradingView 官方浅色网格
+                    style.FrameSplitTextColor = '#787b86';  // TV 浅色坐标轴刻度色
                     style.DefaultTextColor    = '#131722';
                     style.FrameTitleBGColor   = '#ffffff';
                     style.UpBarColor          = TV_UP;
                     style.DownBarColor        = TV_DOWN;
+                    style.DefaultTextFont           = TV_FONT;
+                    style.FrameSplitTextFont        = TV_FONT;
+                    style.TitleFont                 = TV_FONT;
+                    if (!style.OverlayFrame) style.OverlayFrame={};
+                    style.OverlayFrame.TitleFont    = TV_FONT;
+                    style.CorssCursorTextFont       = TV_FONT;
 
                     buttonColor[0]="rgb(156,156,156)";
                     buttonColor[1]="rgb(105,105,105)";
@@ -1144,8 +1242,8 @@
                 JSChart.SetStyle(style);
                 // 同步网格线 Dash 模式：深色=虚线，浅色=实线
                 var res = JSChart.GetResource();
-                res.FrameYLineDash = (styleName==='black') ? [2,2] : null;  // 横向虚线
-                res.FrameXLineDash = (styleName==='black') ? [2,2] : null;  // 纵向虚线
+                res.FrameYLineDash = (styleName==='black') ? [1,1] : null;  // 横向虚线（细密）
+                res.FrameXLineDash = (styleName==='black') ? [1,1] : null;  // 纵向虚线（细密）
                 this.DivKLine.style.backgroundColor=style.BGColor;
 
                 this.Chart.ReloadResource({ Resource:null, Draw:true, Update:true });
@@ -1656,7 +1754,7 @@
             resource.BGColor=blackStyle.BGColor;
             resource.ToolbarButtonStyle=1;
             resource.FrameYLineDash=[2,2];
-            resource.FrameXLineDash=[2,2]; // 竖向网格线初始虚线
+            resource.FrameXLineDash=[1,1]; // 竖向网格线初始虚线（细密）
             resource.UpBarColor='rgb(248,41,71)';
             resource.DownBarColor='rgb(84,255,255)';
             resource.Frame.XBottomOffset=4;
@@ -1991,6 +2089,8 @@
                 else minuteControl.ShowDrawTool();
             };
 
+            document.getElementById('LangBtn').onmousedown=(e)=>{ switchLanguage(); };
+
             // 顶部皮肤循环切换按钮（SVG 图标）
             var SVG_SUN  = '<svg width="18" height="18" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 18a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M14 4.5V3h-1v1.5h1zM8.7 5.76l-1.06-1.06-.7.71 1.06 1.06.7-.7zM19.3 5.76l1.06-1.06.7.71-1.06 1.06-.7-.7zM4.5 13v1H3v-1h1.5zM21 13v1h1.5v-1H21zM5.76 19.3l-1.06 1.06.71.7 1.06-1.06-.7-.7zM18.24 19.3l1.06 1.06.7-.71-1.06-1.06-.7.7zM14 19.5V21h-1v-1.5h1z" fill="currentColor"/></svg>';
             var SVG_MOON = '<svg width="18" height="18" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18.17 14.65c-.3.26-.63.5-.98.7-.93.53-2.02.83-3.19.83-3.59 0-6.5-2.91-6.5-6.5 0-1.17.3-2.26.83-3.19.2-.35.44-.68.7-.98a7.51 7.51 0 1 0 9.14 9.14z" fill="currentColor"/></svg>';
@@ -2162,7 +2262,25 @@ html, body
 body
 {
     font-size: 14px;
+    font-family: "Trebuchet MS", Arial, sans-serif;
     background-color: var(--BGColor);
+}
+
+/* 浏览器不会将 font-family 自动继承到表单元素，需显式覆盖 */
+button, input, select, textarea
+{
+    font-family: "Trebuchet MS", Arial, sans-serif;
+}
+
+button
+{
+    font-size: 14px;
+    letter-spacing: 0.5px;
+}
+
+select, input[type="text"], input[type="search"]
+{
+    font-size: 12px;
 }
 
 /* ================================================================
@@ -2246,7 +2364,7 @@ body
     background-color: var(--TabItemBG);
     color: var(--TabTextColor);
     font-size: 12px;
-    font-family: Arial, sans-serif;
+    font-family: "Trebuchet MS", Arial, sans-serif;
     white-space: nowrap;
     box-sizing: border-box;
 
@@ -2287,6 +2405,15 @@ body
     justify-content: center !important;
     width: 35px;
     height: 100%;
+}
+
+#LangBtn
+{
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 0 8px;
+    min-width: 30px;
 }
 
 .ThemeSwitcherBtn svg
@@ -2375,12 +2502,14 @@ body
     color: #333333 !important;
 }
 
-/* CodeMirror 编辑器始终白色 */
+/* CodeMirror 编辑器始终白色，字体跟随全局设定 */
 .CodeMirror,
 .CodeMirror-scroll
 {
     background-color: #ffffff !important;
     color: #333333 !important;
+    font-family: "Trebuchet MS", Arial, sans-serif !important;
+    font-size: 13px !important;
 }
 
 /* ---- 公式编辑器原有样式（保持不变） ---- */
@@ -2394,6 +2523,9 @@ body
     height: 32px;
     padding: 0 8px;
     cursor: pointer;
+    font-family: "Trebuchet MS", Arial, sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.5px;
 }
 .tools .top span {
     padding-left: 2px;
