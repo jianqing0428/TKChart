@@ -227,6 +227,108 @@
         var g_currentLang  = 'EN';      // 当前语言：'EN' | 'CN'
 
         // ================================================================
+        // X 轴标签上下文感知格式化
+        // ================================================================
+        //
+        // IYXChart 数据格式：
+        //   kItem.Date  ── 整数 YYYYMMDD，如 20260219
+        //   kItem.Time  ── 整数 HHMM，    如 930（= 09:30）、1430（= 14:30）
+        //
+        // 参数：
+        //   current    ── { Date:number, Time:number }，当前刻度的 kItem（或同结构对象）
+        //   previous   ── 同上，上一个刻度；第一个刻度传 null
+        //   zoomLevel  ── 当前可视区域跨越的 日历天数（number）
+        //
+        // 返回值（string）：
+        //   日内   (≤2天)  跨天 → "MM-DD"，同天 → "HH:mm"
+        //   中跨度 (<30天) 跨月 → "MM-DD"，同月 → "DD"
+        //   大跨度 (≥30天) 跨年 → "YYYY-MM"，同年 → "MM"
+        //
+        function formatAxisLabel(current, previous, zoomLevel)
+        {
+            // ── 解包当前刻度 ────────────────────────────────────────────
+            var cDateInt = current.Date;
+            var cY  = Math.floor(cDateInt / 10000);
+            var cM  = Math.floor(cDateInt / 100) % 100;
+            var cD  = cDateInt % 100;
+            var cTimeInt = current.Time || 0;
+            var cH  = Math.floor(cTimeInt / 100);
+            var cMi = cTimeInt % 100;
+
+            var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+
+            // ── 解包上一刻度（null = 第一个刻度，各 boundary 均视为 true）─
+            var isFirst = (previous == null);
+            var pY = isFirst ? -1 : Math.floor(previous.Date / 10000);
+            var pM = isFirst ? -1 : Math.floor(previous.Date / 100) % 100;
+            var pD = isFirst ? -1 : previous.Date % 100;
+
+            var newYear  = isFirst || (cY !== pY);
+            var newMonth = isFirst || (cM !== pM) || newYear;
+            var newDay   = isFirst || (cD !== pD)  || newMonth;
+
+            // ── 格式化分支 ──────────────────────────────────────────────
+            if (zoomLevel <= 2)
+            {
+                // 极小跨度（日内 / 跨 1 天）
+                // 跨天边界：显示日期；日内其余刻度：仅显示时间
+                return newDay
+                    ? pad(cM) + '-' + pad(cD)
+                    : pad(cH) + ':' + pad(cMi);
+            }
+
+            if (zoomLevel < 30)
+            {
+                // 中等跨度（2 天 < span < 30 天）
+                // 跨月：显示 MM-DD；同月：仅显示 DD
+                return newMonth
+                    ? pad(cM) + '-' + pad(cD)
+                    : pad(cD);
+            }
+
+            // 大跨度（span ≥ 30 天）
+            // 跨年：显示 YYYY-MM；同年：仅显示 MM
+            return newYear
+                ? cY + '-' + pad(cM)
+                : pad(cM);
+        }
+
+        /* ── 使用示例（在自定义 drawXAxis 循环中）────────────────────────
+        //
+        // zoomLevel 的计算方式（以 K 线图为例）：
+        //   var data      = klineControl.Chart.ChartFrame.SubFrame[0].Frame.Data.Data;
+        //   var visible   = klineControl.Chart.ChartFrame.SubFrame[0].Frame.XSplitOperator;
+        //   var startIdx  = visible.DataStartIndex;
+        //   var endIdx    = visible.DataEndIndex;
+        //   var startDate = data[startIdx].Date;          // e.g. 20260101
+        //   var endDate   = data[endIdx  ].Date;          // e.g. 20260219
+        //   // 将整数日期近似换算成天数差（忽略非交易日误差，已足够驱动分支判断）
+        //   var sy = Math.floor(startDate/10000), sm = Math.floor(startDate/100)%100, sd = startDate%100;
+        //   var ey = Math.floor(endDate/10000),   em = Math.floor(endDate/100)%100,   ed = endDate%100;
+        //   var zoomLevel = (ey-sy)*365 + (em-sm)*30 + (ed-sd);
+        //
+        // drawXAxis 调用示例：
+        //
+        //   function drawXAxis(ctx, xAxisPoints, zoomLevel) {
+        //       ctx.save();
+        //       ctx.font      = GetDevicePixelRatio() * 12 + 'px "Trebuchet MS", Arial, sans-serif';
+        //       ctx.fillStyle = '#707481';          // TradingView 刻度色
+        //       ctx.textAlign    = 'center';
+        //       ctx.textBaseline = 'top';
+        //
+        //       var previous = null;
+        //       xAxisPoints.forEach(function(point) {
+        //           // point = { x: canvasX, kItem: { Date, Time } }
+        //           var label = formatAxisLabel(point.kItem, previous, zoomLevel);
+        //           ctx.fillText(label, point.x, point.y);
+        //           previous = point.kItem;
+        //       });
+        //
+        //       ctx.restore();
+        //   }
+        ─────────────────────────────────────────────────────────────── */
+
+        // ================================================================
         // 国际化字典
         // ================================================================
         var I18N_MAP = {

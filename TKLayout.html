@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TKChart – Layout Skeleton</title>
+
+    <!-- FontAwesome 6 Free (CDN) -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+          crossorigin="anonymous" />
+
+    <!-- IYXChart CSS -->
+    <link rel="stylesheet" href="../jscommon/iyxchart.resource/font/iconfont.css" />
+    <link rel="stylesheet" href="../jscommon/iyxchart.resource/font/drawtool/iconfont.css" />
+    <link rel="stylesheet" href="../jscommon/iyxchart.resource/css/tools.css" />
+
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="../jscommon/iyxchart.resource/js/codemirror/codemirror.css" />
+
+    <style>
+    /* ================================================================
+       1. CSS 自定义属性 (Design Tokens)
+          所有颜色、尺寸都在这里定义，切换主题只需更换根变量值。
+       ================================================================ */
+    :root {
+        /* 布局尺寸 */
+        --header-h:   50px;
+        --leftbar-w:  50px;
+        --rightbar-w: 320px;
+        --footer-h:   30px;
+
+        /* 深色主题（默认） */
+        --bg-primary:    #131722;
+        --bg-secondary:  #1e222d;
+        --bg-hover:      #2a2e39;
+        --border:        rgba(42, 46, 57, 0.8);
+        --text-primary:  #d1d4dc;
+        --text-muted:    #707481;
+        --accent:        #2962ff;
+        --up:            #089981;
+        --down:          #f23645;
+    }
+
+    /* 浅色主题 ── 仅覆盖颜色变量，布局不变 */
+    [data-theme="light"] {
+        --bg-primary:    #ffffff;
+        --bg-secondary:  #f0f3fa;
+        --bg-hover:      #e8ecf2;
+        --border:        #e0e3eb;
+        --text-primary:  #131722;
+        --text-muted:    #787b86;
+    }
+
+    /* ================================================================
+       2. 全局重置
+       ================================================================ */
+    *, *::before, *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    html, body {
+        width: 100%;
+        height: 100%;         /* 配合下方 grid 的 100vh */
+        overflow: hidden;     /* 全屏不滚动 */
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        font-size: 13px;
+        color: var(--text-primary);
+        background-color: var(--bg-primary);
+    }
+
+    /* 浏览器不自动继承 font-family 到表单元素 */
+    button, input, select {
+        font-family: inherit;
+        font-size: 12px;
+        letter-spacing: 0.4px;
+    }
+
+    /* ================================================================
+       3. 根布局 — CSS Grid (命名区域)
+       ================================================================
+
+       视觉结构：
+       ┌─────────────────────────────────────────────────────────┐
+       │                   HEADER  (50px)                        │  ← 横跨全宽
+       ├──────────┬──────────────────────────────────┬───────────┤
+       │          │                                  │           │
+       │  LEFTBAR │          MAIN CONTENT            │  RIGHTBAR │
+       │  (50px)  │  ┌──────────────────────────┐   │  (320px)  │
+       │          │  │  #TKchart-container       │   │           │
+       │          │  │  (flex: 1, 100% 宽高)     │   │           │
+       │          │  └──────────────────────────┘   │           │
+       │          │  [ FOOTER / PERIOD TABS (30px) ] │           │
+       └──────────┴──────────────────────────────────┴───────────┘
+
+       技术实现：
+       - body 用 CSS Grid 定义两行三列
+       - header 通过 grid-column: 1 / -1 横跨三列
+       - MainContent 内部再用 Flexbox 纵向排列图表区 + Footer
+       - RightBar 内部用 Flexbox 纵向排列 Watchlist + 详情
+    ================================================================ */
+    body {
+        display: grid;
+        grid-template-areas:
+            "header  header  header"
+            "leftbar content rightbar";
+        grid-template-rows:    var(--header-h) 1fr;
+        grid-template-columns: var(--leftbar-w) 1fr var(--rightbar-w);
+        height: 100vh;
+    }
+
+
+    /* ================================================================
+       4. HEADER
+       ================================================================ */
+    #AppHeader {
+        grid-area: header;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        background-color: var(--bg-secondary);
+        border-bottom: 1px solid var(--border);
+        /* 防止子元素撑高 */
+        min-width: 0;
+    }
+
+    /* ── 左侧：Logo + 搜索框 ── */
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+
+    .header-logo {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--accent);
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .header-logo i { font-size: 18px; }
+
+    /* 搜索框容器（用于放置绝对定位的搜索图标） */
+    .symbol-search-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .symbol-search-wrap > i {
+        position: absolute;
+        left: 9px;
+        color: var(--text-muted);
+        font-size: 11px;
+        pointer-events: none;
+    }
+
+    #SymbolSearch {
+        width: 200px;
+        height: 30px;
+        padding: 0 10px 0 28px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        outline: none;
+        transition: border-color 0.15s;
+    }
+
+    #SymbolSearch:focus        { border-color: var(--accent); }
+    #SymbolSearch::placeholder { color: var(--text-muted); }
+
+    /* ── 右侧：功能按钮组 ── */
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    /* 通用 Header 按钮 */
+    .hdr-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 30px;
+        padding: 0 10px;
+        border: none;
+        border-radius: 4px;
+        background: transparent;
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: background-color 0.12s;
+        white-space: nowrap;
+    }
+
+    .hdr-btn:hover  { background-color: var(--bg-hover); }
+    .hdr-btn.active { background-color: var(--bg-hover); color: var(--accent); }
+
+    /* 正方形图标按钮 */
+    .hdr-btn-icon {
+        width: 32px;
+        padding: 0;
+    }
+
+    .hdr-btn-icon svg {
+        display: block;
+        width: 18px;
+        height: 18px;
+    }
+
+    /* 垂直分隔线 */
+    .hdr-sep {
+        flex-shrink: 0;
+        width: 1px;
+        height: 20px;
+        background-color: var(--border);
+        margin: 0 6px;
+    }
+
+    /* ================================================================
+       5. LEFT BAR — 纵向工具图标栏
+       ================================================================ */
+    #LeftBar {
+        grid-area: leftbar;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 8px 0;
+        gap: 4px;
+        background-color: var(--bg-secondary);
+        border-right: 1px solid var(--border);
+        overflow: hidden;
+    }
+
+    /* 左侧图标按钮 */
+    .lb-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: background-color 0.12s, color 0.12s;
+    }
+
+    .lb-btn:hover  { background-color: var(--bg-hover); color: var(--text-primary); }
+    .lb-btn.active { background-color: var(--bg-hover); color: var(--accent); }
+    .lb-btn i      { font-size: 15px; }
+
+    /* 弹性间隔：将底部按钮推到最下方 */
+    .lb-spacer { flex: 1; }
+
+
+    /* ================================================================
+       6. MAIN CONTENT — 图表区（flex 纵向：图表 + Footer）
+       ================================================================ */
+    #MainContent {
+        grid-area: content;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background-color: var(--bg-primary);
+        min-width: 0;   /* 防止 grid 子项溢出 */
+    }
+
+    /* 图表区：占据 MainContent 全部剩余高度 */
+    #ChartArea {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* IYXChart 挂载点：撑满父容器 */
+    #KLineArea, #MinuteArea {
+        width: 100%;
+        height: 100%;
+    }
+
+    #TKchart-container, #MinuteCtrl {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* 彻底屏蔽 IYXChart 悬浮提示窗口 */
+    .IYXChart_Tooltip_Name_Div,
+    [class*="IYXChart_Tooltip"],
+    [class*="IYXChart_Small_Tooltip"] {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+
+    /* ================================================================
+       7. FOOTER — 周期 Tab 栏（位于 MainContent 底部）
+       ================================================================ */
+    #AppFooter {
+        flex-shrink: 0;
+        height: var(--footer-h);
+        display: flex;
+        align-items: center;
+        padding: 0 8px;
+        gap: 2px;
+        background-color: var(--bg-secondary);
+        border-top: 1px solid var(--border);
+        overflow: hidden;
+    }
+
+    /* 周期按钮 */
+    .period-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 3px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        cursor: pointer;
+        transition: background-color 0.12s, color 0.12s;
+        white-space: nowrap;
+    }
+
+    .period-btn:hover  { background-color: var(--bg-hover); color: var(--text-primary); }
+    .period-btn.active {
+        background-color: var(--bg-hover);
+        color: var(--accent);
+        font-weight: 600;
+    }
+
+
+    /* ================================================================
+       8. RIGHT BAR — Watchlist + 商品详情
+       ================================================================ */
+    #RightBar {
+        grid-area: rightbar;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-left: 1px solid var(--border);
+        background-color: var(--bg-secondary);
+    }
+
+    /* ── 面板通用标题栏 ── */
+    .panel-header {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        height: 36px;
+        padding: 0 12px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Watchlist（上半部分：flex:1 占剩余空间）── */
+    #Watchlist {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .watchlist-table-wrap {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    /* 细滚动条 */
+    .watchlist-table-wrap::-webkit-scrollbar       { width: 4px; }
+    .watchlist-table-wrap::-webkit-scrollbar-track { background: transparent; }
+    .watchlist-table-wrap::-webkit-scrollbar-thumb {
+        background-color: var(--border);
+        border-radius: 4px;
+    }
+
+    .watchlist-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .watchlist-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background-color: var(--bg-secondary);
+        padding: 6px 12px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* Price / Change% 列右对齐 */
+    .watchlist-table thead th:nth-child(2),
+    .watchlist-table thead th:nth-child(3) { text-align: right; }
+
+    .watchlist-table tbody tr {
+        cursor: pointer;
+        transition: background-color 0.1s;
+    }
+
+    .watchlist-table tbody tr:hover  { background-color: var(--bg-hover); }
+    .watchlist-table tbody tr.active { background-color: var(--bg-hover); }
+
+    .watchlist-table td {
+        padding: 7px 12px;
+        font-size: 12px;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .watchlist-table td:nth-child(2),
+    .watchlist-table td:nth-child(3) { text-align: right; }
+
+    /* 涨跌色 */
+    .up   { color: var(--up);   }
+    .down { color: var(--down); }
+
+    /* ── 商品详情（下半部分：固定 50% 高度）── */
+    #ProductDetail {
+        flex-shrink: 0;
+        height: 50%;
+        overflow-y: auto;
+        padding: 14px 12px;
+    }
+
+    .detail-symbol {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .detail-price {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--up);
+        margin-bottom: 12px;
+        line-height: 1;
+    }
+
+    .detail-change {
+        font-size: 13px;
+        margin-left: 8px;
+        font-weight: 400;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        font-size: 11px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-muted);
+    }
+
+    .detail-row span:last-child { color: var(--text-primary); }
+
+
+    /* ================================================================
+       9. INDICATOR EDITOR OVERLAY PANEL
+       position:absolute inside #ChartArea (which is position:relative)
+       z-index above IYXChart canvas, but the panel stays clipped to
+       #ChartArea thanks to overflow:hidden on the parent.
+       ================================================================ */
+
+    #indicatorEditorPanel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 50%;
+        height: 100%;
+        z-index: 120;
+        display: none;              /* toggled to flex by JS */
+        flex-direction: column;
+        background: rgba(19, 23, 34, 0.92);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-left: 1px solid rgba(42, 46, 57, 0.9);
+        box-shadow: -6px 0 28px rgba(0, 0, 0, 0.6);
+        overflow: hidden;
+        font-family: "Trebuchet MS", Arial, sans-serif;
+    }
+
+    /* ── Panel header bar ── */
+    .ied-header {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 40px;
+        padding: 0 12px;
+        background: rgba(30, 34, 45, 0.85);
+        border-bottom: 1px solid rgba(42, 46, 57, 0.8);
+    }
+
+    .ied-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .ied-title i { font-size: 12px; color: var(--accent); }
+
+    .ied-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.12s, color 0.12s;
+    }
+
+    .ied-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+    /* ── Controls: name + window + buttons ── */
+    .ied-controls {
+        flex-shrink: 0;
+        padding: 7px 12px 6px;
+        border-bottom: 1px solid rgba(42, 46, 57, 0.6);
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .ied-name-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .ied-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        flex-shrink: 0;
+        letter-spacing: 0.3px;
+    }
+
+    .ied-name-input {
+        flex: 1;
+        height: 26px;
+        padding: 0 8px;
+        background: rgba(11, 14, 20, 0.85);
+        border: 1px solid rgba(42, 46, 57, 0.8);
+        border-radius: 3px;
+        color: var(--text-primary);
+        font-size: 12px;
+        font-family: inherit;
+        outline: none;
+        min-width: 0;
+    }
+
+    .ied-name-input:focus { border-color: var(--accent); }
+
+    .ied-win-select {
+        height: 26px;
+        padding: 0 4px;
+        background: rgba(11, 14, 20, 0.85);
+        border: 1px solid rgba(42, 46, 57, 0.8);
+        border-radius: 3px;
+        color: var(--text-primary);
+        font-size: 11px;
+        font-family: inherit;
+        outline: none;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .ied-btn-row {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    .ied-btn {
+        height: 24px;
+        padding: 0 9px;
+        border-radius: 3px;
+        border: 1px solid rgba(42, 46, 57, 0.8);
+        background: rgba(30, 34, 45, 0.8);
+        color: var(--text-primary);
+        font-size: 11px;
+        font-family: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background-color 0.12s, border-color 0.12s;
+    }
+
+    .ied-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
+
+    .ied-btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        font-weight: 600;
+    }
+
+    .ied-btn-primary:hover { background: #1c4ed8; border-color: #1c4ed8; }
+
+    .ied-btn-save { color: var(--up); border-color: rgba(8, 153, 129, 0.45); }
+    .ied-btn-save:hover { background: rgba(8, 153, 129, 0.15); border-color: var(--up); }
+
+    /* ── Section label (reused) ── */
+    .ied-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding: 5px 12px 3px;
+    }
+
+    /* ── Params: compact flex list ── */
+    .ied-params {
+        flex-shrink: 0;
+        border-bottom: 1px solid rgba(42, 46, 57, 0.6);
+        padding-bottom: 7px;
+    }
+
+    .ied-param-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 0 12px;
+    }
+
+    .ied-param-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        height: 30px;
+        padding: 0 8px;
+        background: rgba(11, 14, 20, 0.7);
+        border: 1px solid rgba(42, 46, 57, 0.6);
+        border-radius: 3px;
+        flex: 1 1 130px;
+        min-width: 120px;
+        max-width: 160px;
+        overflow: hidden;
+    }
+
+    .ied-param-name-in,
+    .ied-param-val-in {
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text-primary);
+        font-size: 12px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        min-width: 0;
+    }
+
+    .ied-param-name-in { width: 36px; color: #7cb9e8; letter-spacing: 0.3px; }
+    .ied-param-val-in  { width: 40px; color: var(--up); text-align: right; }
+
+    .ied-param-sep { color: var(--text-muted); font-size: 11px; flex-shrink: 0; }
+
+    /* ── Code editor area ── */
+    .ied-editor-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+        border-bottom: 1px solid rgba(42, 46, 57, 0.6);
+    }
+
+    .ied-editor-inner {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    /* CodeMirror: dark theme overrides */
+    .ied-editor-inner .CodeMirror {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        height: 100% !important;
+        background: #0B0E14 !important;
+        color: #D1D4DC !important;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+        font-size: 13px !important;
+        line-height: 1.65 !important;
+        border: none !important;
+    }
+
+    .ied-editor-inner .CodeMirror-scroll    { background: #0B0E14 !important; }
+    .ied-editor-inner .CodeMirror-cursor    { border-left-color: #c8d0e0 !important; }
+    .ied-editor-inner .CodeMirror-selected  { background: rgba(41, 98, 255, 0.28) !important; }
+    .ied-editor-inner .CodeMirror-gutters   {
+        background: #0d1117 !important;
+        border-right: 1px solid rgba(42, 46, 57, 0.8) !important;
+    }
+    .ied-editor-inner .CodeMirror-linenumber          { color: #434651 !important; }
+    .ied-editor-inner .CodeMirror-activeline-background { background: rgba(255,255,255,0.025) !important; }
+
+    /* Thin dark scrollbars inside CodeMirror */
+    .ied-editor-inner .CodeMirror-vscrollbar::-webkit-scrollbar,
+    .ied-editor-inner .CodeMirror-hscrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+    .ied-editor-inner .CodeMirror-vscrollbar::-webkit-scrollbar-track,
+    .ied-editor-inner .CodeMirror-hscrollbar::-webkit-scrollbar-track { background: transparent; }
+    .ied-editor-inner .CodeMirror-vscrollbar::-webkit-scrollbar-thumb,
+    .ied-editor-inner .CodeMirror-hscrollbar::-webkit-scrollbar-thumb {
+        background: #434651;
+        border-radius: 4px;
+    }
+
+    /* ── Saved indicator list ── */
+    .ied-saved {
+        flex-shrink: 0;
+        max-height: 108px;
+        overflow-y: auto;
+    }
+
+    .ied-saved::-webkit-scrollbar       { width: 4px; }
+    .ied-saved::-webkit-scrollbar-track { background: transparent; }
+    .ied-saved::-webkit-scrollbar-thumb { background: #434651; border-radius: 4px; }
+
+    .ied-saved-list {
+        list-style: none;
+        margin: 0;
+        padding: 0 0 4px;
+    }
+
+    .ied-saved-list li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 12px;
+        font-size: 12px;
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: background-color 0.1s;
+    }
+
+    .ied-saved-list li:hover { background: var(--bg-hover); }
+
+    .ied-saved-list li .ied-del {
+        font-size: 11px;
+        color: var(--down);
+        cursor: pointer;
+        padding: 1px 5px;
+        border-radius: 2px;
+        line-height: 1;
+    }
+
+    .ied-saved-list li .ied-del:hover { background: rgba(242, 54, 69, 0.15); }
+
+    </style>
+</head>
+
+<!--
+    data-theme: "dark" | "light"
+    JS 通过切换此属性来切换整套 CSS 变量
+-->
+<body data-theme="dark">
+
+    <!-- ================================================================
+         HEADER — 顶部导航栏（高度 50px，横跨全宽）
+         ================================================================ -->
+    <header id="AppHeader">
+
+        <!-- 左侧：Logo + Symbol 搜索框 -->
+        <div class="header-left">
+
+            <div class="header-logo">
+                <i class="fa-solid fa-chart-candlestick"></i>
+                TKChart
+            </div>
+
+            <div class="symbol-search-wrap">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text"
+                       id="SymbolSearch"
+                       placeholder="Symbol / Name"
+                       autocomplete="off"
+                       spellcheck="false" />
+            </div>
+
+        </div>
+
+        <!-- 右侧：功能按钮（Chip / Draw / 语言 / 主题 / 设置） -->
+        <div class="header-right">
+
+            <button class="hdr-btn" id="ChipBtn"  title="Chip Distribution">Chip</button>
+            <button class="hdr-btn" id="DrawBtn"  title="Drawing Tools">
+                <i class="fa-solid fa-pencil" style="margin-right:5px;"></i>Draw
+            </button>
+            <button class="hdr-btn" id="KLineEditorBtn" title="KLine Indicator Editor">
+                <i class="fa-solid fa-code" style="margin-right:5px;"></i>Editor
+            </button>
+
+            <div class="hdr-sep"></div>
+
+            <!-- 语言切换：显示目标语言（EN 模式显示"中"，反之显示"EN"） -->
+            <button class="hdr-btn" id="LangBtn" title="Switch Language"
+                    style="font-weight:600; font-size:11px; letter-spacing:0.5px; min-width:34px;">
+                中
+            </button>
+
+            <!-- 主题切换：初始为深色，显示月亮图标 -->
+            <button class="hdr-btn hdr-btn-icon" id="ThemeBtn" title="Toggle Theme">
+                <!-- moon icon（深色主题时显示） -->
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+            </button>
+
+            <div class="hdr-sep"></div>
+
+            <button class="hdr-btn hdr-btn-icon" title="Settings">
+                <i class="fa-solid fa-gear" style="font-size:14px;"></i>
+            </button>
+
+        </div>
+    </header>
+
+
+    <!-- ================================================================
+         LEFT BAR — 纵向工具图标栏（宽度 50px）
+         ================================================================ -->
+    <aside id="LeftBar" aria-label="Tool Panel">
+
+        <!-- 常用工具图标（纵向居中排列） -->
+        <button class="lb-btn active" title="Chart View">
+            <i class="fa-solid fa-chart-line"></i>
+        </button>
+        <button class="lb-btn" title="Indicators">
+            <i class="fa-solid fa-flask"></i>
+        </button>
+        <button class="lb-btn" title="Drawing Tools">
+            <i class="fa-solid fa-pen-ruler"></i>
+        </button>
+        <button class="lb-btn" title="Alerts">
+            <i class="fa-solid fa-bell"></i>
+        </button>
+        <button class="lb-btn" title="Replay">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+        </button>
+
+        <!-- 弹性间隔：把下方图标推到底部 -->
+        <div class="lb-spacer"></div>
+
+        <button class="lb-btn" title="Layout Settings">
+            <i class="fa-solid fa-sliders"></i>
+        </button>
+        <button class="lb-btn" title="Help">
+            <i class="fa-solid fa-circle-question"></i>
+        </button>
+
+    </aside>
+
+
+    <!-- ================================================================
+         MAIN CONTENT — 中央图表区 + 底部周期 Footer
+         ================================================================ -->
+    <main id="MainContent">
+
+        <!-- 图表挂载区：撑满 MainContent 剩余高度 -->
+        <div id="ChartArea">
+            <!-- K线图容器（默认显示） -->
+            <div id="KLineArea">
+                <div id="TKchart-container"></div>
+            </div>
+            <!-- 分时图容器（切换到 Time/5D 周期时显示） -->
+            <div id="MinuteArea" style="display:none;">
+                <div id="MinuteCtrl"></div>
+            </div>
+
+            <!-- ============================================================
+                 Indicator Editor Overlay Panel
+                 position:absolute inside #ChartArea (position:relative)
+                 ============================================================ -->
+            <div id="indicatorEditorPanel" role="dialog" aria-label="KLine Indicator Editor">
+
+                <!-- Header -->
+                <div class="ied-header">
+                    <div class="ied-title">
+                        <i class="fa-solid fa-code"></i>
+                        KLine Editor
+                    </div>
+                    <button class="ied-close" id="IedCloseBtn" title="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Controls: name + window select + action buttons -->
+                <div class="ied-controls">
+                    <div class="ied-name-row">
+                        <label class="ied-label">Name</label>
+                        <input type="text" class="ied-name-input" id="ied_index_name"
+                               value="MyIndicator1" autocomplete="off" spellcheck="false" />
+                        <select class="ied-win-select" id="ied_window_index">
+                            <option value="1">Sub Chart</option>
+                            <option value="0">Main Chart</option>
+                        </select>
+                    </div>
+                    <div class="ied-btn-row">
+                        <button class="ied-btn ied-btn-primary" id="ied_run"   title="Run in selected window (F5)">&#9654; Run</button>
+                        <button class="ied-btn"                 id="ied_new"   title="Run in a new sub-window">&#43; New Win</button>
+                        <button class="ied-btn"                 id="ied_check" title="Check script syntax">&#10003; Syntax</button>
+                        <button class="ied-btn ied-btn-save"    id="ied_save"  title="Save to local storage">&#11015; Save</button>
+                    </div>
+                </div>
+
+                <!-- Params: compact flex rows (fixed height, no table) -->
+                <div class="ied-params">
+                    <div class="ied-section-label">Parameters</div>
+                    <div class="ied-param-list">
+                        <div class="ied-param-item">
+                            <input class="ied-param-name-in" id="ied_pn_0" value="M1" maxlength="10" />
+                            <span class="ied-param-sep">=</span>
+                            <input class="ied-param-val-in"  id="ied_pv_0" value="5"  type="number" min="1" />
+                        </div>
+                        <div class="ied-param-item">
+                            <input class="ied-param-name-in" id="ied_pn_1" value="M2" maxlength="10" />
+                            <span class="ied-param-sep">=</span>
+                            <input class="ied-param-val-in"  id="ied_pv_1" value="10" type="number" min="1" />
+                        </div>
+                        <div class="ied-param-item">
+                            <input class="ied-param-name-in" id="ied_pn_2" value="M3" maxlength="10" />
+                            <span class="ied-param-sep">=</span>
+                            <input class="ied-param-val-in"  id="ied_pv_2" value="15" type="number" min="1" />
+                        </div>
+                        <div class="ied-param-item">
+                            <input class="ied-param-name-in" id="ied_pn_3" value="M4" maxlength="10" />
+                            <span class="ied-param-sep">=</span>
+                            <input class="ied-param-val-in"  id="ied_pv_3" value="20" type="number" min="1" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Script editor: fills remaining height -->
+                <div class="ied-editor-wrap">
+                    <div class="ied-section-label" style="padding:5px 12px 3px;">Script</div>
+                    <div class="ied-editor-inner" id="ied_editor_inner">
+                        <textarea id="ied_code"></textarea>
+                    </div>
+                </div>
+
+                <!-- Saved indicators list -->
+                <div class="ied-saved">
+                    <div class="ied-section-label" style="padding:4px 12px 3px;">Saved</div>
+                    <ul class="ied-saved-list" id="ied_local_index"></ul>
+                </div>
+
+            </div><!-- /#indicatorEditorPanel -->
+
+        </div>
+
+        <!-- 底部周期 Tab 栏（高度 30px，位于 MainContent 最底部） -->
+        <footer id="AppFooter">
+            <button class="period-btn"        data-period="time">Time</button>
+            <button class="period-btn"        data-period="5d">5D</button>
+            <button class="period-btn active" data-period="1d">1D</button>
+            <button class="period-btn"        data-period="w">W</button>
+            <button class="period-btn"        data-period="m">M</button>
+            <button class="period-btn"        data-period="y">Y</button>
+            <button class="period-btn"        data-period="1min">1M</button>
+            <button class="period-btn"        data-period="5min">5M</button>
+            <button class="period-btn"        data-period="15min">15M</button>
+            <button class="period-btn"        data-period="30min">30M</button>
+        </footer>
+
+    </main>
+
+
+    <!-- ================================================================
+         RIGHT BAR — Watchlist（上） + 商品详情（下）
+         ================================================================ -->
+    <aside id="RightBar" aria-label="Market Panel">
+
+        <!-- 上半部分：自选股列表 -->
+        <section id="Watchlist">
+            <div class="panel-header">Watchlist</div>
+
+            <div class="watchlist-table-wrap">
+                <table class="watchlist-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Price</th>
+                            <th>Change%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 示例行（实际由 JS 动态渲染） -->
+                        <tr class="active" data-symbol="AAPL">
+                            <td>AAPL</td>
+                            <td>182.45</td>
+                            <td class="up">+1.23%</td>
+                        </tr>
+                        <tr data-symbol="TSLA">
+                            <td>TSLA</td>
+                            <td>248.30</td>
+                            <td class="down">-2.78%</td>
+                        </tr>
+                        <tr data-symbol="NVDA">
+                            <td>NVDA</td>
+                            <td>875.12</td>
+                            <td class="up">+3.41%</td>
+                        </tr>
+                        <tr data-symbol="MSFT">
+                            <td>MSFT</td>
+                            <td>415.60</td>
+                            <td class="up">+0.55%</td>
+                        </tr>
+                        <tr data-symbol="AMZN">
+                            <td>AMZN</td>
+                            <td>192.20</td>
+                            <td class="down">-0.88%</td>
+                        </tr>
+                        <tr data-symbol="GOOGL">
+                            <td>GOOGL</td>
+                            <td>165.40</td>
+                            <td class="up">+1.02%</td>
+                        </tr>
+                        <tr data-symbol="META">
+                            <td>META</td>
+                            <td>505.10</td>
+                            <td class="up">+2.15%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 下半部分：商品详情 -->
+        <section id="ProductDetail">
+            <div class="panel-header">Detail</div>
+
+            <div style="padding: 12px 12px 0;">
+                <div class="detail-symbol">AAPL</div>
+                <div class="detail-price">
+                    182.45
+                    <span class="detail-change up">+2.20 (+1.23%)</span>
+                </div>
+
+                <div class="detail-row"><span>Open</span>   <span>180.12</span></div>
+                <div class="detail-row"><span>High</span>   <span>183.90</span></div>
+                <div class="detail-row"><span>Low</span>    <span>179.50</span></div>
+                <div class="detail-row"><span>Close</span>  <span>182.45</span></div>
+                <div class="detail-row"><span>Volume</span> <span>54.2M</span></div>
+                <div class="detail-row"><span>Mkt Cap</span><span>2.82T</span></div>
+                <div class="detail-row"><span>P/E</span>    <span>28.6</span></div>
+            </div>
+        </section>
+
+    </aside>
+
+
+    <!-- ================================================================
+         JS 骨架 — 主题 / 语言 / 周期 / Watchlist 交互
+         ================================================================ -->
+    <script>
+    (function () {
+        'use strict';
+
+        /* ── SVG 图标字符串 ─────────────────────────────────────────── */
+        const SVG_MOON = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>`;
+
+        const SVG_SUN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>
+            <line x1="12" y1="2"  x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="2"  y1="12" x2="5"  y2="12"/>
+            <line x1="19" y1="12" x2="22" y2="12"/>
+            <line x1="4.22"  y1="4.22"  x2="6.34"  y2="6.34"/>
+            <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+            <line x1="19.78" y1="4.22"  x2="17.66" y2="6.34"/>
+            <line x1="6.34"  y1="17.66" x2="4.22"  y2="19.78"/>
+        </svg>`;
+
+
+        /* ── 1. 主题切换 ────────────────────────────────────────────── */
+        let currentTheme = 'dark';
+        const themeBtn = document.getElementById('ThemeBtn');
+
+        themeBtn.addEventListener('click', function () {
+            currentTheme = (currentTheme === 'dark') ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', currentTheme);
+            this.innerHTML = (currentTheme === 'dark') ? SVG_MOON : SVG_SUN;
+            // ↓ 接入 IYXChart 时取消注释
+            // if (klineControl) klineControl.ChangeStyle(currentTheme === 'dark' ? 'black' : 'white');
+        });
+
+
+        /* ── 2. 语言切换 ────────────────────────────────────────────── */
+        let currentLang = 'EN';
+        const langBtn   = document.getElementById('LangBtn');
+
+        langBtn.addEventListener('click', function () {
+            currentLang    = (currentLang === 'EN') ? 'CN' : 'EN';
+            this.textContent = (currentLang === 'EN') ? '中' : 'EN';
+            // ↓ 接入 I18N 系统时取消注释
+            // switchLanguage();
+        });
+
+
+        /* ── 3. 周期 Tab 切换 ──────────────────────────────────────── */
+        const periodBtns = document.querySelectorAll('.period-btn');
+
+        periodBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                periodBtns.forEach(function (b) { b.classList.remove('active'); });
+                this.classList.add('active');
+                const period = this.dataset.period;
+                // ↓ 接入 IYXChart 周期切换时取消注释
+                // setActivePeriod(period);
+                console.log('[Period switched]', period);
+            });
+        });
+
+
+        /* ── 4. Watchlist 行选中 ───────────────────────────────────── */
+        const watchRows = document.querySelectorAll('.watchlist-table tbody tr');
+
+        watchRows.forEach(function (row) {
+            row.addEventListener('click', function () {
+                watchRows.forEach(function (r) { r.classList.remove('active'); });
+                this.classList.add('active');
+                const symbol = this.dataset.symbol;
+                // ↓ 接入行情加载时取消注释
+                // loadSymbol(symbol);
+                console.log('[Symbol selected]', symbol);
+            });
+        });
+
+
+        /* ── 5. 左侧图标按钮排他选中 ──────────────────────────────── */
+        const lbBtns = document.querySelectorAll('.lb-btn');
+
+        lbBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                // 只对非底部工具按钮做排他（bottom 两个不参与）
+                if (!this.closest('.lb-spacer ~ button')) {
+                    lbBtns.forEach(function (b) {
+                        if (!b.previousElementSibling ||
+                            !b.previousElementSibling.classList.contains('lb-spacer')) {
+                            b.classList.remove('active');
+                        }
+                    });
+                }
+                this.classList.toggle('active');
+            });
+        });
+
+    })();
+    </script>
+
+    <!-- ================================================================
+         IYXChart 库文件
+         ================================================================ -->
+    <script src="../jscommon/iyxchart.resource/js/jquery.min.js"></script>
+    <script src="../jscommon/iyxchart.resource/js/webfont.js"></script>
+    <script src='../jscommon/iyxchart.console.js'></script>
+    <script src="../jscommon/iyxchart.network.js"></script>
+    <script src="../jscommon/iyxchart.js"></script>
+    <script src="../jscommon/iyxchart.complier.js"></script>
+    <script src="../jscommon/iyxchart.index.data.js"></script>
+    <script src="../jscommon/iyxchart.style.js"></script>
+    <script src="../jscommon/iyxchart.popMenu.js"></script>
+    <script src="../jscommon/iyxchart.DialogDrawTool.js"></script>
+    <script src="../jscommon/iyxchart.PopMinuteChart.js"></script>
+    <script src="../jscommon/iyxchart.PopKLineChart.js"></script>
+    <script src="../jscommon/iyxchart.report.js"></script>
+    <script src="../jscommon/iyxchart.keyboard.js"></script>
+    <script src="../jscommon/iyxchart.PopKeyboard.js"></script>
+    <script src="../jscommon/iyxchart.DialogTooltip.js"></script>
+    <script src="../jscommon/iyxchart.DialogSelectRect.js"></script>
+    <script src="../jscommon/iyxchart.DialogSearchIndex.js"></script>
+    <script src="../jscommon/iyxchart.version.js"></script>
+
+    <!-- 测试数据 -->
+    <script src="../jscommon/iyxchart.testdata/60000.sh.capital.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/60000.sh.NewsInteract.js"></script>
+    <script src="../jscommon/iyxchart.testdata/60000.sh.BlockTrading.js"></script>
+    <script src="../jscommon/iyxchart.testdata/60000.sh.TradeDetal.js"></script>
+    <script src="../jscommon/iyxchart.testdata/60000.sh.finance_7.js"></script>
+    <script src="../jscommon/iyxchart.testdata/symbollist_shsz.js"></script>
+
+    <!-- 分钟K线数据 -->
+    <script src="../jscommon/iyxchart.testdata/M1KLine/600000.sh.minute.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/M1KLine/000001.sh.minute.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/M1KLine/000300.sh.minute.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/M1KLine/399001.sz.minute.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/M1KLine/000001.sz.minute.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/M1KLine/399006.sz.minute.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/M1KLine/399005.sz.minute.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/M1KLine/000151.sz.minute.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/M1KLine/ICL8.cfe.minute.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/M1KLine/IML8.cfe.minute.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/M1KLine/IFL8.cfe.minute.kline.js"></script>
+
+    <!-- 日K数据 -->
+    <script src="../jscommon/iyxchart.testdata/DayKLine/600000.sh.day.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayKLine/000001.sh.day.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayKLine/000300.sh.day.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayKLine/399001.sz.day.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayKLine/000001.sz.day.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayKLine/399006.sz.day.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayKLine/399005.sz.day.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayKLine/000151.sz.day.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayKLine/ICL8.cfe.day.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayKLine/IML8.cfe.day.kline.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayKLine/IFL8.cfe.day.kline.js"></script>
+
+    <!-- 单日分时数据 -->
+    <script src="../jscommon/iyxchart.testdata/DayMinute/000001.sz.1day.minute.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayMinute/600000.sh.1day.minute.js"></script>
+    <script src="../jscommon/iyxchart.testdata/DayMinute/000151.sz.1day.minute.js"></script>
+
+    <!-- 多日分时数据 -->
+    <script src="../jscommon/iyxchart.testdata/Day5Minute/600000.sh.5day.minute.js"></script>
+    <script src="../jscommon/iyxchart.testdata/Day5Minute/000001.sz.5day.minute.js"></script>
+    <script src="../jscommon/iyxchart.testdata/Day5Minute/000151.sz.5day.minute.js"></script>
+
+    <script src="../jscommon/iyxchart.testdata.js"></script>
+
+    <!-- CodeMirror editor -->
+    <script src="../jscommon/iyxchart.resource/js/codemirror/codemirror.js"></script>
+    <script src="../jscommon/iyxchart.resource/js/codemirror/javascript.js"></script>
+
+    <!-- ================================================================
+         图表初始化
+         ================================================================ -->
+    <script>
+
+        MARKET_SUFFIX_NAME.GetMarketStatus = function(symbol) { return 2; };
+
+        var klineControl  = null;
+        var minuteControl = null;
+        var g_isKLine     = true;
+        var g_currentTheme = 'black';
+
+        // ---- K线图控件 ----
+        function KLineChart(divKLine)
+        {
+            this.DivKLine = divKLine;
+            this.Chart    = JSChart.Init(divKLine, false, true);
+            this.JSPopMenu = new JSPopMenu();
+            this.JSPopMenu.Inital();
+
+            this.Option = {
+                Type: '历史K线图',
+                Windows: [
+                    { Index:"MA", Overlay:true, AddIndexWindow:true },
+                    { Index:"MACD" },
+                    { Index:"VOL", Overlay:true, YAxis:{ FloatPrecision:0, StringFormat:2 } }
+                ],
+                OverlayIndex: [],
+                EnableZoomUpDown: {},
+                EnableYDrag: { Right:true, Left:true, Wheel:true },
+                Symbol: "600000.sh",
+                IsAutoUpdate: true,
+                AutoUpdateFrequency: 3000,
+                SplashTitle: '加载数据中......',
+                IsShowRightMenu: true,
+                CtrlMoveStep: 10,
+                EnablePopMenuV2: true,
+                EnableDrawToolDialogV2: true,
+                EnableModifyDrawDialogV2: true,
+                EnableResize: true,
+                EnableTooltipDialog: true,
+                TooltipDialog: { Enable:true, Style:1 },
+                SelectRectDialog: { Enable:true },
+                KLineTooltip: { Enable:true, EnableKeyDown:false },
+                FloatTooltip: { Enable:false },
+                SmallFloatTooltip: { Enable:false },
+                FloatLayer: { Enable:false },
+                SearchIndexDialog: { Enable:true },
+                ModifyIndexParamDialog: { Enable:true },
+                PopMinuteChart: {
+                    Enable: true,
+                    EnableMarkBG: true,
+                    Option: { Windows: [{ Index:"RSI", Overlay:false, MaxMin:false }] }
+                },
+                CorssCursorInfo: { Right:1, Bottom:1, DateFormatType:3, HPenType:1, VPenType:1, IsShowClose:false, VLineType:0, RightButton:{ Enable:true }, IsShowCorss:true, PriceFormatType:0, DataFormatType:0, EnableKeyboard:true },
+                EnableZoomIndexWindow: true,
+                DrawTool: {},
+                KLine: {
+                    DragMode: 1, Right: 1, Period: 0,
+                    MaxRequestDataCount: 8000, MaxRequestMinuteDayCount: 100,
+                    IsShowTooltip: true, DrawType: 0,
+                    RightSpaceCount: 2, ZoomType: 0, DataWidth: 10
+                },
+                StepPixel: 0,
+                IsDrawPictureXY: true,
+                Listener: {},
+                SelectedChart: { EnableSelected:true, EnableMoveOn:true },
+                EnableIndexChartDrag: true,
+                GlobalOption: { SelectedBorder:{ Mode:1 } },
+                SelectRect: { Mark:{ IsShow:true, Position:{ Top:"TopEx" } } },
+                DragSelectRect: { Enable:true, ShowMode:2 },
+                KLineTitle: { IsShowName:true, IsShowSettingInfo:true, IsTitleShowLatestData:true },
+                Border: {
+                    Left:1, Right:20, Bottom:18, Top:25,
+                    AutoLeft:{ Blank:10, MinWidth:60 },
+                    AutoRight:{ Blank:5,  MinWidth:60 }
+                },
+                Frame: [
+                    { SplitCount:12, XSplitCount:15, IsShowXLine:true, IsShowYLine:true, Custom:[{ Type:0, Position:'right', LineType:1 }] },
+                    { SplitCount:5,  BottomSpace:18, FilterType:1 },
+                    { SplitCount:4,  FilterType:1 }
+                ],
+                ExtendChart: [],
+                Overlay: []
+            };
+
+            this.Create = function()
+            {
+                var self = this;
+                $(window).resize(function() { self.OnSize(); });
+
+                var resource = JSChart.GetResource();
+                resource.BGColor             = '#131722';
+                resource.UpBarColor          = '#089981';
+                resource.DownBarColor        = '#f23645';
+                resource.FrameBorderPen      = 'rgba(42,46,57,0.8)';
+                resource.FrameSplitPen       = 'rgba(200,200,200,0.25)';
+                resource.FrameXLineDash      = [1,1];
+                resource.FrameSplitTextColor = '#707481';
+                resource.DefaultTextColor    = '#d1d4dc';
+                resource.FrameTitleBGColor   = '#131722';
+                var _f = GetDevicePixelRatio() * 12 + 'px "Trebuchet MS", Arial, sans-serif';
+                resource.DefaultTextFont        = _f;
+                resource.FrameSplitTextFont     = _f;
+                resource.TitleFont              = _f;
+                resource.OverlayFrame.TitleFont = _f;
+                resource.CorssCursorTextFont    = _f;
+                this.DivKLine.style.backgroundColor = resource.BGColor;
+
+                this.Option.EventCallback = [
+                    { event:JSCHART_EVENT_ID.ON_FORMAT_KLINE_FLOAT_TOOLTIP,  callback:(e,d,o)=>{ this.OnFormatKLineFloatTooltip(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_CREATE_FRAME,                callback:(e,d,o)=>{ this.OnCreateFrame(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_DELETE_FRAME,                callback:(e,d,o)=>{ this.OnDeleteFrame(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_SPLIT_YCOORDINATE,           callback:(e,d,o)=>{ this.OnSplitYCoordinate(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_SPLIT_XCOORDINATE,           callback:(e,d,o)=>{ this.OnSplitXCoordinate(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_CREATE_OVERLAY_FRAME,        callback:(e,d,o)=>{ this.OnCreateOverlayFrame(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_CREATE_CUSTOM_Y_COORDINATE,  callback:(e,d,o)=>{ this.OnCreateCustomYCoordinate(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_TITLE_DRAW,                  callback:(e,d,o)=>{ this.OnTitleDraw(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_CLICK_EXTENDCHART_BUTTON,    callback:(e,d,o)=>{ this.OnClickExtendChartButton(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_CHANGE_INDEX,                callback:(e,d,o)=>{ this.OnChangeIndex(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_CLICK_TITLE_BUTTON,          callback:(e,d,o)=>{ this.OnClickTitleButton(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_CREATE_RIGHT_MENU,           callback:(e,d,o)=>{ this.OnCreateRightMenu(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_MENU_COMMAND,                callback:(e,d,o)=>{ this.OnMenuCommand(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_CLICK_CROSSCURSOR_RIGHT,     callback:(e,d,o)=>{ this.ClickCrossCursor(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.RECV_HISTROY_DATA,              callback:(e,d,o)=>{ this.OnRecvHistoryData(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_FORMAT_KLINE_HIGH_LOW_TITLE, callback:(e,d,o)=>{ this.OnFormatKLineHighLowTitle(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_FORMAT_INDEX_OUT_TEXT,       callback:(e,d,o)=>{ this.OnFormatIndexOutText(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_CALCULATE_CHIP_DATA,         callback:(e,d,o)=>{ this.OnCalculateChipData(e,d,o); } },
+                    { event:JSCHART_EVENT_ID.ON_SIZE_FRAME,                  callback:(e,d,o)=>{ this.OnSizeFrame(e,d,o); } }
+                ];
+
+                this.Option.OnCreatedCallback = (chart) => { this.OnCreateTKChart(chart); };
+                this.Option.ScriptError       = (error) => { this.ExecuteScriptError(error); };
+                this.Option.NetworkFilter     = (data, cb) => { this.NetworkFilter(data, cb); };
+                this.Chart.SetOption(this.Option);
+                this.OnSize();
+            };
+
+            this.OnCreateTKChart = function(chart) { chart.GetRectSelectPaint(); };
+
+            this.NetworkFilter = function(data, callback)
+            {
+                switch(data.Name) {
+                    case 'JSSymbolData::GetSymbolData':
+                        this.GetSymbolData(data, callback); break;
+                    case "KLineChartContainer::RequestDragDayData":
+                        break;
+                    default:
+                        HQData.NetworkFilter(data, callback); break;
+                }
+            };
+
+            this.GetSymbolData = function(data, callback)
+            {
+                data.PreventDefault = true;
+                var symbol = data.Request.Data.symbol;
+                var period = data.Request.Data.period;
+                if (this.Chart.JSChartContainer.Symbol == symbol) {
+                    if (ChartData.IsDayPeriod(period, true))
+                        HQData.RequestHistoryData(data, callback);
+                    else if (ChartData.IsMinutePeriod(period, true))
+                        HQData.RequestHistoryMinuteData(data, callback);
+                }
+            };
+
+            this.OnCreateFrame = function(event, data, obj)
+            {
+                var frame = data.SubFrame.Frame;
+                frame.IsShowYText[0]   = false;
+                frame.IsShowXLine      = false;
+                frame.IsDrawRightBorder = true;
+                frame.IsDrawLeftBorder  = false;
+                frame.YTextPadding[0]  = 5;
+                frame.YTextPadding[1]  = 5;
+                frame.YLineExtend = [{ Width:5, Color:frame.PenBorder }, { Width:5, Color:frame.PenBorder }];
+                frame.YTextExtend = [{ Align:0 }, { Align:2 }];
+                frame.XTextExtend = [{ Align:1 }];
+                frame.XLineExtend = [{ Mode:1, Color:frame.PenBorder }];
+                frame.CustomToolbar = [{
+                    ID: 8888, IsLeft: true,
+                    Style: { MoveOnColor:"rgb(255,255,255)", Color:"rgb(156,156,156)", Family:"iconfont", Text:"\ue691", Size:13*GetDevicePixelRatio(), MerginLeft:2, YMoveOffset:-1 },
+                    TooltipText: "指标设置",
+                    Data: { FrameID:frame.Identify, ID:"DrapDownMenu" }
+                }];
+                if (frame.Identify == 1) {
+                    var chart = obj.GetExtendChartByClassNameV2("FrameButtomToolbarPaint");
+                    if (!chart) {
+                        obj.CreateExtendChart("FrameButtomToolbarPaint", { FrameID:frame.Identify, AryButton:[
+                            { Title:"MACD",  ID:"F_BTN_01", TooltipText:"MACD",   Data:{ IndexID:"MACD"  } },
+                            { Title:"RSI",   ID:"F_BTN_02", TooltipText:"RSI",    Data:{ IndexID:"RSI"   } },
+                            { Title:"CCI",   ID:"F_BTN_03", TooltipText:"CCI",    Data:{ IndexID:"CCI"   } },
+                            { Title:"ATR",   ID:"F_BTN_04", TooltipText:"ATR",    Data:{ IndexID:"ATR"   } },
+                            { Title:"VMACD", ID:"F_BTN_05", TooltipText:"VMACD",  Data:{ IndexID:"VMACD" } },
+                            { Title:"BRAR",  ID:"F_BTN_06", TooltipText:"BRAR",   Data:{ IndexID:"BRAR"  } },
+                            { Title:"更多指标", ID:"F_BTN_07", TooltipText:"更多", SVGButton:{ Symbol:"\ue694" }, Data:{} },
+                            { Title:"新增窗口",  ID:"F_BTN_08", TooltipText:"新增窗口", Data:{} }
+                        ]});
+                    }
+                }
+            };
+
+            this.OnDeleteFrame = function(event, data, obj) {};
+
+            this.OnCreateOverlayFrame = function(event, data, obj)
+            {
+                var mainFrame = data.SubFrame.Frame;
+                var frame     = data.OverlayFrame.Frame;
+                frame.PenBorder      = mainFrame.PenBorder;
+                frame.YTextPadding[1] = 5;
+                frame.Style           = 1;
+                frame.IsShowTitle     = false;
+                frame.YLineExtend = [null, { Width:5 }];
+                frame.YTextExtend = [null, { Align:2 }];
+                frame.CustomToolbar = [{
+                    ID: 8889, IsLeft: true,
+                    Style: { MoveOnColor:"rgb(255,255,255)", Color:"rgb(156,156,156)", Family:"iconfont", Text:"\ue691", Size:13*GetDevicePixelRatio(), MerginLeft:2, YMoveOffset:-2 },
+                    TooltipText: "指标设置",
+                    Data: { IndexGuid:data.OverlayFrame.Identify, ID:"DrapDownMenu" }
+                }];
+            };
+
+            this.OnSplitYCoordinate = function(event, data, obj) {};
+            this.OnSplitXCoordinate = function(event, data, obj) {};
+
+            this.OnCreateCustomYCoordinate = function(event, data, obj)
+            {
+                if (data.ID == 0) {
+                    var areas = [
+                        { value:7,  bg:"rgba(249,210,88,0.5)",  range:[6.0,7.0]  },
+                        { value:8,  bg:"rgba(93,202,119,0.5)",  range:[7.0,8.0]  },
+                        { value:9,  bg:"rgba(43,190,174,0.5)",  range:[8.0,9.0]  },
+                        { value:10, bg:"rgba(125,212,251,0.5)", range:[9.0,10.0] }
+                    ];
+                    areas.forEach(function(a) {
+                        var info = new CoordinateInfo();
+                        info.Type  = 5;
+                        info.Value = a.value;
+                        info.AreaData = { Value:a.range, BGColor:a.bg, Position:[0,1] };
+                        data.Frame.CustomHorizontalInfo.push(info);
+                    });
+                }
+            };
+
+            this.OnSize = function()
+            {
+                if (this.Chart) this.Chart.OnSize();
+            };
+
+            this.OnSizeFrame = function(event, data, obj)
+            {
+                if (!data || !data.SubFrame) return;
+                var TARGET_CELL_PX = 45;
+                for (var i = 0; i < data.SubFrame.length; i++) {
+                    var frame = data.SubFrame[i].Frame;
+                    if (!frame || !frame.ChartBorder || !frame.YSplitOperator) continue;
+                    var chartH = frame.ChartBorder.GetChartHeight();
+                    if (!chartH || chartH <= 0) continue;
+                    var ideal = Math.round(chartH / TARGET_CELL_PX);
+                    frame.YSplitOperator.SplitCount = Math.max(4, Math.min(20, ideal));
+                }
+            };
+
+            this.ChangeSymbol  = function(s) { if (this.Chart) this.Chart.ChangeSymbol(s); };
+            this.ChangePeriod  = function(v) { if (this.Chart) this.Chart.JSChartContainer.ChangePeriod(v); };
+            this.ChangeIndex   = function(wi, n, o) { this.Chart.ChangeIndex(wi, n, o); };
+            this.AddIndexWindow = function(n) { this.Chart.AddIndexWindow(n); };
+            this.ShowAllKLine  = function() { if (this.Chart && this.Chart.JSChartContainer) this.Chart.JSChartContainer.ShowAllKLine(); };
+            this.SplashScreen  = function(e) { this.Chart.EnableSplashScreen(e); };
+            this.ReloadResource = function() { if (this.Chart) this.Chart.ReloadResource({ Resource:null, Draw:true, Update:true }); };
+            this.Hide = function() { if (this.Chart && this.Chart.JSChartContainer) this.Chart.JSChartContainer.HideAllPopDiv(); };
+
+            this.EnableStockChip = function()
+            {
+                if (!this.Chart || !this.Chart.JSChartContainer) return;
+                var tc   = this.Chart.JSChartContainer;
+                var bShow = !!tc.GetStockChipChart();
+                var cfg  = { Name:'StockChip', ShowType:1, Width:230 };
+                if (bShow) tc.ExecuteMenuCommand(JSCHART_MENU_ID.CMD_HIDE_STOCKCHIP_ID);
+                else        tc.ExecuteMenuCommand(JSCHART_MENU_ID.CMD_SHOW_STOCKCHIP_ID, [cfg.Name, cfg]);
+            };
+
+            this.ShowDrawTool = function()
+            {
+                if (!this.Chart || !this.Chart.JSChartContainer) return;
+                var tc = this.Chart.JSChartContainer;
+                if (!tc.IsShowDrawToolDialog()) tc.ExecuteMenuCommand(JSCHART_MENU_ID.CMD_SHOW_DRAWTOOL_ID);
+            };
+
+            this.ExecuteScriptError = function(error) {
+                alert('错误:' + error.Description + '\n行号:' + error.LineNumber + (error.Word ? '\n错误单词:' + error.Word : ''));
+            };
+
+            this.ChangeStyle = function(styleName)
+            {
+                var TV_UP   = '#089981';
+                var TV_DOWN = '#f23645';
+                var TV_FONT = GetDevicePixelRatio() * 12 + 'px "Trebuchet MS", Arial, sans-serif';
+                var buttonColor;
+
+                if (styleName === 'black') {
+                    var style = TKChartStyle.GetStyleConfig(STYLE_TYPE_ID.BLACK_ID);
+                    style.BGColor             = '#131722';
+                    style.FrameBorderPen      = 'rgba(42,46,57,0.8)';
+                    style.FrameSplitPen       = 'rgba(200,200,200,0.25)';
+                    style.FrameSplitTextColor = '#707481';
+                    style.DefaultTextColor    = '#d1d4dc';
+                    style.FrameTitleBGColor   = '#131722';
+                    style.UpBarColor = TV_UP; style.DownBarColor = TV_DOWN;
+                    style.DefaultTextFont = TV_FONT; style.FrameSplitTextFont = TV_FONT;
+                    style.TitleFont = TV_FONT;
+                    if (!style.OverlayFrame) style.OverlayFrame = {};
+                    style.OverlayFrame.TitleFont = TV_FONT;
+                    style.CorssCursorTextFont = TV_FONT;
+                    buttonColor = ["rgb(156,156,156)", "rgb(255,255,255)"];
+                    JSChart.SetCSSStyle(STYLE_TYPE_ID.BLACK_ID);
+                } else if (styleName === 'white') {
+                    var style = TKChartStyle.GetStyleConfig(STYLE_TYPE_ID.WHITE_ID);
+                    style.BGColor             = '#ffffff';
+                    style.FrameBorderPen      = 'rgba(240,243,250,1)';
+                    style.FrameSplitPen       = 'rgba(240,243,250,1)';
+                    style.FrameSplitTextColor = '#787b86';
+                    style.DefaultTextColor    = '#131722';
+                    style.FrameTitleBGColor   = '#ffffff';
+                    style.UpBarColor = TV_UP; style.DownBarColor = TV_DOWN;
+                    style.DefaultTextFont = TV_FONT; style.FrameSplitTextFont = TV_FONT;
+                    style.TitleFont = TV_FONT;
+                    if (!style.OverlayFrame) style.OverlayFrame = {};
+                    style.OverlayFrame.TitleFont = TV_FONT;
+                    style.CorssCursorTextFont = TV_FONT;
+                    buttonColor = ["rgb(156,156,156)", "rgb(105,105,105)"];
+                    JSChart.SetCSSStyle(STYLE_TYPE_ID.WHITE_ID);
+                } else { return; }
+
+                var penBorder = style.FrameBorderPen;
+                var frame = this.Chart.JSChartContainer.Frame;
+                for (var i = 0; i < frame.SubFrame.length; i++) {
+                    var sf = frame.SubFrame[i];
+                    sf.Frame.CustomToolbar.forEach(function(item) {
+                        if (item.ID == "8888" || item.ID == "8889") {
+                            item.Style.MoveOnColor = buttonColor[1];
+                            item.Style.Color = buttonColor[0];
+                        }
+                    });
+                    sf.Frame.YLineExtend = [{ Width:5, Color:penBorder }, { Width:5, Color:penBorder }];
+                    sf.Frame.XLineExtend = [{ Mode:1, Color:penBorder }];
+                    sf.OverlayIndex.forEach(function(oi) {
+                        oi.Frame.PenBorder = penBorder;
+                        oi.Frame.CustomToolbar.forEach(function(item) {
+                            if (item.ID == "8889") {
+                                item.Style.MoveOnColor = buttonColor[1];
+                                item.Style.Color = buttonColor[0];
+                            }
+                        });
+                    });
+                }
+                style.ToolbarButtonStyle = 1;
+                style.OverlayFrame.BolderPen = style.FrameBorderPen;
+                JSChart.SetStyle(style);
+                var res = JSChart.GetResource();
+                res.FrameYLineDash = (styleName === 'black') ? [1,1] : null;
+                res.FrameXLineDash = (styleName === 'black') ? [1,1] : null;
+                this.DivKLine.style.backgroundColor = style.BGColor;
+                this.Chart.ReloadResource({ Resource:null, Draw:true, Update:true });
+            };
+
+            this.OnTitleDraw             = function() {};
+            this.OnFormatKLineFloatTooltip = function() {};
+            this.OnFormatKLineHighLowTitle = function() {};
+            this.OnFormatIndexOutText    = function() {};
+            this.OnCalculateChipData     = function() {};
+            this.OnRecvHistoryData       = function() {};
+            this.OnCreateRightMenu       = function() {};
+            this.OnMenuCommand           = function() {};
+
+            this.OnClickExtendChartButton = function(event, data, obj)
+            {
+                if (!data.Info) return;
+                if (this.OnClickIndexButton(data.Info, data.e, obj)) data.PreventDefault = true;
+            };
+
+            this.OnClickIndexButton = function(btnInfo, e, tkchart)
+            {
+                if (btnInfo.Chart.ClassName !== "FrameButtomToolbarPaint") return false;
+                var chart = btnInfo.Chart;
+                var bData = btnInfo.Data;
+                if (!bData.Data) return false;
+                if (btnInfo.ButtonType === 0 && bData.Data.IndexID) {
+                    chart.SetSelectedID(bData.ID);
+                    this.Chart.ChangeIndex(btnInfo.FrameID, bData.Data.IndexID);
+                    return true;
+                }
+                if (btnInfo.ID === "F_BTN_07") {
+                    var tabInfo = { ID:"F_BTN_07", Chart:chart };
+                    this.Chart.PopupMenuByTab({
+                        Menu: [
+                            { Name:"ACD",  ID:"POP_MENU_1", Data:{ IndexID:"ACD",  WindowIndex:btnInfo.FrameID, TabInfo:tabInfo } },
+                            { Name:"AMV",  ID:"POP_MENU_2", Data:{ IndexID:"AMV",  WindowIndex:btnInfo.FrameID, TabInfo:tabInfo } },
+                            { Name:"BIAS", ID:"POP_MENU_3", Data:{ IndexID:"BIAS", WindowIndex:btnInfo.FrameID, TabInfo:tabInfo } },
+                            { Name:"其他指标", SubMenu:[
+                                { Name:"WAD",  Data:{ IndexID:"WAD",  WindowIndex:btnInfo.FrameID, TabInfo:tabInfo } },
+                                { Name:"MASS", Data:{ IndexID:"MASS", WindowIndex:btnInfo.FrameID, TabInfo:tabInfo } }
+                            ]}
+                        ],
+                        Position: JSPopMenu.POSITION_ID.TAB_MENU_ID,
+                        ClickCallback: (d) => { this.OnClickIndexMenu(d); }
+                    }, btnInfo.RectCell);
+                    if (e.preventDefault) e.preventDefault();
+                    if (e.stopPropagation) e.stopPropagation();
+                } else if (btnInfo.ID === "F_BTN_08") {
+                    if (e.preventDefault) e.preventDefault();
+                    if (e.stopPropagation) e.stopPropagation();
+                    tkchart.ShowAddIndexWindowDialog({});
+                }
+                return true;
+            };
+
+            this.OnClickIndexMenu = function(menuData)
+            {
+                if (!menuData.Data) return;
+                var d = menuData.Data;
+                if (d.TabInfo) {
+                    d.TabInfo.Chart.AryButton.forEach(function(item) {
+                        if (item.ID === d.TabInfo.ID) {
+                            item.Data = { IndexID:d.IndexID };
+                            item.Title = menuData.Name;
+                            item.TooltipText = '指标' + item.Title + '说明';
+                        }
+                    });
+                }
+                this.Chart.ChangeIndex(d.WindowIndex, d.IndexID);
+            };
+
+            this.OnChangeIndex = function(event, data, obj)
+            {
+                var aryChart = obj.GetExtendChartByClassNameV2("FrameButtomToolbarPaint");
+                if (!IFrameSplitOperator.IsNonEmptyArray(aryChart)) return;
+                for (var i = 0; i < aryChart.length; i++) {
+                    var chart = aryChart[i].Chart;
+                    if (chart.FrameID === data.WindowIndex) {
+                        var finder = null;
+                        chart.AryButton.forEach(function(btn) {
+                            if (btn.Data && btn.Data.IndexID === data.IndexInfo.ID) finder = btn;
+                        });
+                        chart.SetSelectedID(finder ? finder.ID : null);
+                        return;
+                    }
+                }
+            };
+
+            this.OnClickTitleButton = function(event, data, obj)
+            {
+                if (!data.Info || !data.Info.Data) return;
+                var rtButton = data.Info.Rect;
+                var e = data.e;
+                var menuData;
+                if (data.Info.ID === 8889) {
+                    menuData = {
+                        Menu: [
+                            this.Chart.JSChartContainer.GetModifyOverlayIndexMenuData(data.Info.Data.IndexGuid),
+                            this.Chart.JSChartContainer.GetShowOverlayIndexMenuData(data.Info.Data.IndexGuid),
+                            this.Chart.JSChartContainer.GetShowOverlayIndexYAxisMenuData(data.Info.Data.IndexGuid),
+                            this.Chart.JSChartContainer.GetOverlayIndexShareYMenuData(data.Info.Data.IndexGuid),
+                            { Name:JSPopMenu.SEPARATOR_LINE_NAME },
+                            { Name:"删除指标", Data:{ ID:JSCHART_MENU_ID.CMD_DELETE_OVERLAY_INDEX_ID, Args:[data.Info.Data.IndexGuid] } }
+                        ],
+                        Position: JSPopMenu.POSITION_ID.TAB_MENU_ID,
+                        ClickCallback: (d) => { this.OnClickIndexDrapdownMenu(d); }
+                    };
+                } else {
+                    var frame = this.Chart.JSChartContainer.Frame.SubFrame[data.Info.FrameID].Frame;
+                    menuData = {
+                        Menu: [
+                            this.Chart.JSChartContainer.GetModifyIndexMenuData(data.Info.FrameID),
+                            this.Chart.JSChartContainer.GetShowIndexMenuData(data.Info.FrameID),
+                            { Name:"Y轴分割方式", SubMenu:[
+                                { Name:"自动",         Data:{ ID:"CHANGE_Y_SPLIT_TYPE", Args:[data.Info.FrameID, 0] }, Checked:frame.YSplitOperator.SplitType===0 },
+                                { Name:"数值最大最小", Data:{ ID:"CHANGE_Y_SPLIT_TYPE", Args:[data.Info.FrameID, 1] }, Checked:frame.YSplitOperator.SplitType===1 }
+                            ]}
+                        ],
+                        Position: JSPopMenu.POSITION_ID.TAB_MENU_ID,
+                        ClickCallback: (d) => { this.OnClickIndexDrapdownMenu(d); }
+                    };
+                }
+                this.Chart.PopupMenuByDrapdown(menuData, rtButton);
+                if (e.preventDefault) e.preventDefault();
+                if (e.stopPropagation) e.stopPropagation();
+            };
+
+            this.OnClickIndexDrapdownMenu = function(menuData)
+            {
+                var KNOWN = [
+                    JSCHART_MENU_ID.CMD_SHOW_INDEX_ID, JSCHART_MENU_ID.CMD_SHOW_OVERLAY_INDEX_ID,
+                    JSCHART_MENU_ID.CMD_DELETE_OVERLAY_INDEX_ID, JSCHART_MENU_ID.CMD_SHOW_OVERLAY_Y_AXIS_ID,
+                    JSCHART_MENU_ID.CMD_ENABLE_OVERLAY_SHARE_Y_ID,
+                    JSCHART_MENU_ID.CMD_MODIFY_INDEX_PARAM, JSCHART_MENU_ID.CMD_MODIFY_OVERLAY_INDEX_PARAM
+                ];
+                if (KNOWN.indexOf(menuData.Data.ID) >= 0) {
+                    this.Chart.JSChartContainer.ExecuteMenuCommand(menuData.Data.ID, menuData.Data.Args);
+                } else if (menuData.Data.ID === "CHANGE_Y_SPLIT_TYPE") {
+                    var frame = this.Chart.JSChartContainer.Frame.SubFrame[menuData.Data.Args[0]].Frame;
+                    frame.YSplitOperator.SplitType = menuData.Data.Args[1];
+                    this.Chart.JSChartContainer.ResetFrameXYSplit();
+                    this.Chart.JSChartContainer.Draw();
+                }
+            };
+
+            this.ColorCount = 0;
+            this.ClickCrossCursor = function(event, data, obj)
+            {
+                var button = data.Button;
+                var yValue = button.Data.YValue;
+                var windowIndex = button.Data.FrameID;
+                var e = data.e;
+                var items = (windowIndex === 0) ? [
+                    { Name:'买入 @ ' + yValue.toFixed(2), Data:{ ID:"MENU_BUY_ID",       Args:[yValue] } },
+                    { Name:'卖出 @ ' + yValue.toFixed(2), Data:{ ID:"MENU_SELL_ID",      Args:[yValue] } },
+                    { Name:JSPopMenu.SEPARATOR_LINE_NAME },
+                    { Name:'画线 @ ' + yValue.toFixed(2), Data:{ ID:"MENU_DRAW_LINE_ID", Args:[yValue, windowIndex] } }
+                ] : [
+                    { Name:'画线 @ ' + yValue.toFixed(5), Data:{ ID:"MENU_DRAW_LINE_ID", Args:[yValue, windowIndex] } }
+                ];
+                this.Chart.PopupMenuByDrapdown({ Menu:items, Position:JSPopMenu.POSITION_ID.DROPDOWN_RIGHT_MENU_ID, ClickCallback:(d)=>{ this.OnClickCrossCursorMenu(d); } }, button.Rect);
+                if (e.preventDefault) e.preventDefault();
+                if (e.stopPropagation) e.stopPropagation();
+            };
+
+            this.OnClickCrossCursorMenu = function(data)
+            {
+                if (data.Data.ID === "MENU_DRAW_LINE_ID") {
+                    var COLORS = ['rgb(255,140,0)', "rgb(153,50,204)", "rgb(0,139,0)"];
+                    this.Chart.AddChartDrawPicture({
+                        ClassName: "ChartDrawHLine",
+                        Value: [{ XValue:0, YValue:data.Data.Args[0] }],
+                        FrameID: data.Data.Args[1],
+                        RightSpaceWidth: 2,
+                        Button: { SettingIcon:null },
+                        ButtonBGColor: "rgb(100,0,0)",
+                        LineColor: COLORS[this.ColorCount++ % COLORS.length]
+                    });
+                    this.Chart.Draw();
+                } else if (data.Data.ID === "MENU_BUY_ID") {
+                    alert('买入价:' + data.Data.Args[0].toFixed(2));
+                } else if (data.Data.ID === "MENU_SELL_ID") {
+                    alert('卖出价:' + data.Data.Args[0].toFixed(2));
+                }
+            };
+        }
+
+        KLineChart.InitalStyle = function()
+        {
+            var blackStyle = TKChartStyle.GetStyleConfig(STYLE_TYPE_ID.BLACK_ID);
+            JSChart.SetStyle(blackStyle);
+            var resource = JSChart.GetResource();
+            resource.BGColor               = blackStyle.BGColor;
+            resource.ToolbarButtonStyle    = 1;
+            resource.FrameYLineDash        = [2,2];
+            resource.FrameXLineDash        = [1,1];
+            resource.UpBarColor            = 'rgb(248,41,71)';
+            resource.DownBarColor          = 'rgb(84,255,255)';
+            resource.Frame.XBottomOffset   = 4;
+            resource.IndexTitleMerginLeft  = 3 * GetDevicePixelRatio();
+            resource.DOTLINE.LineDash      = [10,10];
+            resource.IndexTitle.EnableIndexArrow = false;
+            JSChart.SetCSSStyle(STYLE_TYPE_ID.BLACK_ID);
+        };
+
+        // ---- 分时图控件 ----
+        function MinuteChart(divKLine)
+        {
+            this.DivKLine = divKLine;
+            this.Chart    = JSChart.Init(divKLine, false, false);
+
+            this.Option = {
+                Type: '分钟走势图',
+                Windows: [{ Index:"MACD", AddIndexWindow:true, IsSync:true, IndexHelp:true }],
+                OverlayIndex: [],
+                Symbol: '600000.sh',
+                IsAutoUpdate: true,
+                AutoUpdateFrequency: 1000,
+                DayCount: 1,
+                IsShowRightMenu: true,
+                LatestPointFlash: { Enable:true, Frequency:500 },
+                DragSelectRect: { Enable:true, EnableLButton:true },
+                EnableZoomIndexWindow: true,
+                EnablePopMenuV2: true,
+                EnableDrawToolDialogV2: true,
+                EnableNewIndex: true,
+                TooltipDialog: { Enable:false, Style:1 },
+                EnableResize: true,
+                Minute: { DragMode:1 },
+                MaxDayCount: 5,
+                CorssCursorInfo: { HPenType:1, VPenType:1, Left:1, Right:1, Bottom:1, RightButton:{ Enable:true }, EnableDBClick:true },
+                SelectRect: { ShowRangeText:{ Enable:true, Position:1 } },
+                SelectRectDialog: { Enable:true },
+                EnableYDrag: { Right:true, Left:true, Wheel:true },
+                MinuteLine: { IsDrawAreaPrice:true },
+                MinuteTitle: { IsShowTime:true, IsShowName:true, IsShowDate:false, IsShowVolTitle:true, IsTitleShowLatestData:true },
+                MinuteVol: { BarColorType:1 },
+                IsDrawPictureXY: true,
+                SelectedChart: { EnableSelected:true, EnableMoveOn:true },
+                EnableIndexChartDrag: true,
+                FloatTooltip: { Enable:true },
+                SearchIndexDialog: { Enable:true },
+                ModifyIndexParamDialog: { Enable:true },
+                EnableNightDayBG: true,
+                Border: { Left:20, Right:20, Top:25, Bottom:25, AutoLeft:{ Blank:10, MinWidth:60 }, AutoRight:{ Blank:10, MinWidth:60 } },
+                Frame: [{ Custom:[{ Type:0, Position:'right' }] }],
+                Overlay: [],
+                ExtendChart: [{ Name:'MinutePCTooltip' }]
+            };
+
+            this.Create = function()
+            {
+                var self = this;
+                $(window).resize(function() { self.OnSize(); });
+                this.Option.ScriptError   = (err) => { alert('错误:' + err.Description); };
+                this.Option.NetworkFilter = (data, cb) => { HQData.NetworkFilter(data, cb); };
+                this.Option.EventCallback = [];
+                this.Chart.SetOption(this.Option);
+                this.OnSize();
+            };
+
+            this.OnSize        = function() { if (this.Chart) this.Chart.OnSize(); };
+            this.ChangeSymbol  = function(s) { if (this.Chart) this.Chart.ChangeSymbol(s); };
+            this.ChangeDayCount = function(n) { if (this.Chart) this.Chart.JSChartContainer.ChangeDayCount(n); };
+            this.Hide          = function() { if (this.Chart && this.Chart.JSChartContainer) this.Chart.JSChartContainer.HideAllPopDiv(); };
+            this.ReloadResource = function() { if (this.Chart) this.Chart.ReloadResource({ Resource:null, Draw:true, Update:true }); };
+            this.ShowDrawTool  = function()
+            {
+                if (!this.Chart || !this.Chart.JSChartContainer) return;
+                var tc = this.Chart.JSChartContainer;
+                if (!tc.IsShowDrawToolDialog()) tc.ExecuteMenuCommand(JSCHART_MENU_ID.CMD_SHOW_DRAWTOOL_ID);
+            };
+            this.EnableBeforeOpen = function()
+            {
+                if (!this.Chart || !this.Chart.JSChartContainer) return;
+                var tc   = this.Chart.JSChartContainer;
+                var bShow = tc.IsShowBeforeData && tc.IsShowMultiDayBeforeData;
+                tc.ExecuteMenuCommand(JSCHART_MENU_ID.CMD_SHOW_CALLCATION_ID, [{ Left:!bShow, MultiDay:{ Left:!bShow } }]);
+            };
+        }
+
+        // ================================================================
+        // Indicator Editor — state & functions
+        // ================================================================
+
+        var DEFAULT_CODE = 'MA1:MA(CLOSE,M1);\nMA2:MA(CLOSE,M2);\nMA3:MA(CLOSE,M3);\nMA4:MA(CLOSE,M4);\nDRAWICON(C>O,H,5);';
+
+        var g_iedEditor   = null;   // CodeMirror instance
+        var g_iedOpen     = false;  // panel open/closed state
+        var g_iedMapIndex = new Map(); // name → indexInfo
+
+        /** Collect indicator info from the editor panel inputs */
+        function iedGetIndexInfo()
+        {
+            var name   = document.getElementById('ied_index_name').value || 'MyIndicator1';
+            var code   = g_iedEditor ? g_iedEditor.getValue() : '';
+            var params = [];
+            for (var i = 0; i < 4; i++) {
+                var pn = document.getElementById('ied_pn_' + i).value.trim();
+                var pv = document.getElementById('ied_pv_' + i).value.trim();
+                if (pn && pv) params.push({ Name:pn, Value:parseInt(pv, 10) });
+            }
+            return { Name:name, Script:code, Args:params, YAxis:{ ExcludeValue:false } };
+        }
+
+        /** Run (Switch) — replace indicator in the selected window */
+        function iedRun(addNewWindow)
+        {
+            if (!klineControl || !klineControl.Chart) return;
+            var info = iedGetIndexInfo();
+            var wi   = parseInt(document.getElementById('ied_window_index').value, 10);
+            if (addNewWindow)
+                klineControl.Chart.AddScriptIndexWindow(info);
+            else
+                klineControl.Chart.ChangeScriptIndex(wi, info);
+        }
+
+        /** Check syntax via JSComplier */
+        function iedCheckSyntax()
+        {
+            var info = iedGetIndexInfo();
+            if (!info.Script.trim()) { alert('Script is empty.'); return; }
+            JSComplier.Explain(
+                info.Script,
+                {
+                    Callback: function(data) {
+                        var log = '';
+                        for (var i = 0; i < Math.min(data.length, 30); i++) {
+                            var item = data[i];
+                            log += (item.Type === 0 ? item.Data : item.Draw) + '\n';
+                        }
+                        alert('Syntax OK\n' + log);
+                    },
+                    Arguments: info.Args
+                },
+                function(err) {
+                    alert('Syntax Error — Line ' + err.LineNumber + ': ' + err.Description);
+                }
+            );
+        }
+
+        /** Save indicator to localStorage */
+        function iedSave()
+        {
+            var info = iedGetIndexInfo();
+            if (!info.Script.trim()) { alert('Script is empty!'); return; }
+            if (g_iedMapIndex.has(info.Name)) {
+                if (!window.confirm('Overwrite indicator [' + info.Name + ']?')) return;
+            }
+            g_iedMapIndex.set(info.Name, info);
+            iedPersist();
+            iedRefreshSavedList();
+        }
+
+        /** Load a saved indicator into the editor panel */
+        function iedLoad(name)
+        {
+            if (!g_iedMapIndex.has(name)) return;
+            var item = g_iedMapIndex.get(name);
+            document.getElementById('ied_index_name').value = item.Name;
+            if (g_iedEditor) g_iedEditor.setValue(item.Script || '');
+            for (var i = 0; i < 4; i++) {
+                var arg = item.Args ? item.Args[i] : null;
+                document.getElementById('ied_pn_' + i).value = arg ? arg.Name  : '';
+                document.getElementById('ied_pv_' + i).value = arg ? arg.Value : '';
+            }
+        }
+
+        /** Delete a saved indicator */
+        function iedDelete(e, name)
+        {
+            e.stopPropagation();
+            if (!g_iedMapIndex.has(name)) return;
+            if (!window.confirm('Delete indicator [' + name + ']?')) return;
+            g_iedMapIndex.delete(name);
+            iedPersist();
+            iedRefreshSavedList();
+        }
+
+        function iedPersist()
+        {
+            var arr = [];
+            g_iedMapIndex.forEach(function(v, k) { arr.push({ Key:k, Data:v }); });
+            localStorage.setItem('TKLayout_Local_Index', JSON.stringify(arr));
+        }
+
+        function iedLoadFromStorage()
+        {
+            var raw = localStorage.getItem('TKLayout_Local_Index');
+            if (typeof raw !== 'string') return;
+            try {
+                var arr = JSON.parse(raw);
+                if (Array.isArray(arr))
+                    arr.forEach(function(item) { g_iedMapIndex.set(item.Key, item.Data); });
+            } catch(ex) {}
+            iedRefreshSavedList();
+        }
+
+        function iedRefreshSavedList()
+        {
+            var ul = document.getElementById('ied_local_index');
+            if (!ul) return;
+            var html = '';
+            g_iedMapIndex.forEach(function(v, k) {
+                var safe = k.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                html += '<li onclick="iedLoad(\'' + safe + '\')">'
+                      +   k
+                      +   '<span class="ied-del" onclick="iedDelete(event,\'' + safe + '\')">&#x2715;</span>'
+                      + '</li>';
+            });
+            ul.innerHTML = html;
+        }
+
+        /** Resize CodeMirror to fill its container; call after open/window resize */
+        function iedResizeEditor()
+        {
+            var inner = document.getElementById('ied_editor_inner');
+            if (inner && g_iedEditor)
+                g_iedEditor.setSize('100%', inner.clientHeight + 'px');
+        }
+
+        /** Toggle the indicator editor panel open / closed */
+        function toggleIndicatorEditor()
+        {
+            g_iedOpen = !g_iedOpen;
+            var panel = document.getElementById('indicatorEditorPanel');
+            var btn   = document.getElementById('KLineEditorBtn');
+            if (g_iedOpen) {
+                panel.style.display = 'flex';
+                if (btn) btn.classList.add('active');
+                // Defer resize so the flex layout has been calculated
+                setTimeout(iedResizeEditor, 0);
+            } else {
+                panel.style.display = 'none';
+                if (btn) btn.classList.remove('active');
+            }
+        }
+
+
+        // ---- 周期切换辅助函数 ----
+        function showKLineChart(period)
+        {
+            g_isKLine = true;
+            document.getElementById('KLineArea').style.display  = '';
+            document.getElementById('MinuteArea').style.display = 'none';
+            if (minuteControl) minuteControl.Hide();
+            if (klineControl) { klineControl.Hide(); klineControl.ChangePeriod(period); }
+        }
+
+        function showMinuteChart(dayCount)
+        {
+            g_isKLine = false;
+            document.getElementById('MinuteArea').style.display = '';
+            document.getElementById('KLineArea').style.display  = 'none';
+            if (klineControl) klineControl.Hide();
+            if (minuteControl) minuteControl.ChangeDayCount(dayCount);
+        }
+
+        // ---- DOM ready ----
+        $(function()
+        {
+            // 加载 iconfont
+            var font = new FontFace("iconfont", "url('../jscommon/iyxchart.resource/font/iconfont.woff?t=1690947130935') format('woff')");
+            document.fonts.add(font);
+            font.load();
+
+            KLineChart.InitalStyle();
+
+            klineControl  = new KLineChart(document.getElementById('TKchart-container'));
+            minuteControl = new MinuteChart(document.getElementById('MinuteCtrl'));
+
+            document.fonts.ready.then(function() {
+                klineControl.Create();
+                minuteControl.Create();
+            });
+
+            // 周期按钮 → 图表联动
+            var PERIOD_MAP = {
+                'time':  function() { showMinuteChart(1); },
+                '5d':    function() { showMinuteChart(5); },
+                '1d':    function() { showKLineChart(0); },
+                'w':     function() { showKLineChart(1); },
+                'm':     function() { showKLineChart(2); },
+                'y':     function() { showKLineChart(3); },
+                '1min':  function() { showKLineChart(4); },
+                '5min':  function() { showKLineChart(5); },
+                '15min': function() { showKLineChart(6); },
+                '30min': function() { showKLineChart(7); }
+            };
+            document.querySelectorAll('.period-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var fn = PERIOD_MAP[this.dataset.period];
+                    if (fn) fn();
+                });
+            });
+
+            // 主题按钮 → 图表皮肤（在现有骨架 listener 之后运行，读取已切换的 data-theme）
+            document.getElementById('ThemeBtn').addEventListener('click', function() {
+                var theme      = document.body.getAttribute('data-theme');
+                var chartStyle = (theme === 'dark') ? 'black' : 'white';
+                g_currentTheme = chartStyle;
+                if (klineControl) klineControl.ChangeStyle(chartStyle);
+                if (minuteControl) minuteControl.ReloadResource();
+            });
+
+            // Symbol 搜索框
+            document.getElementById('SymbolSearch').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    var symbol = this.value.trim();
+                    if (symbol) {
+                        if (klineControl) klineControl.ChangeSymbol(symbol);
+                        if (minuteControl) minuteControl.ChangeSymbol(symbol);
+                    }
+                }
+            });
+
+            // Chip / Draw 按钮
+            document.getElementById('ChipBtn').addEventListener('click', function() {
+                if (klineControl) klineControl.EnableStockChip();
+            });
+            document.getElementById('DrawBtn').addEventListener('click', function() {
+                if (g_isKLine && klineControl) klineControl.ShowDrawTool();
+                else if (!g_isKLine && minuteControl) minuteControl.ShowDrawTool();
+            });
+
+            // ── Indicator Editor Panel ──────────────────────────────────
+
+            // Initialize CodeMirror on the editor textarea
+            $('#ied_code').val(DEFAULT_CODE);
+            g_iedEditor = CodeMirror.fromTextArea(
+                document.getElementById('ied_code'),
+                {
+                    mode: 'javascript',
+                    lineNumbers: true,
+                    indentWithTabs: false,
+                    tabSize: 4,
+                    extraKeys: {
+                        'F5': function() { iedRun(false); },
+                        'Ctrl-Enter': function() { iedRun(false); }
+                    }
+                }
+            );
+            g_iedEditor.setSize('100%', '100%');
+
+            // Load saved indicators from localStorage
+            iedLoadFromStorage();
+
+            // Panel open / close
+            document.getElementById('KLineEditorBtn').addEventListener('click', function() {
+                toggleIndicatorEditor();
+            });
+            document.getElementById('IedCloseBtn').addEventListener('click', function() {
+                toggleIndicatorEditor();
+            });
+
+            // Action buttons
+            document.getElementById('ied_run'  ).addEventListener('click', function() { iedRun(false); });
+            document.getElementById('ied_new'  ).addEventListener('click', function() { iedRun(true);  });
+            document.getElementById('ied_check').addEventListener('click', function() { iedCheckSyntax(); });
+            document.getElementById('ied_save' ).addEventListener('click', function() { iedSave(); });
+
+            // Keyboard isolation: stop keydown events from reaching the chart
+            // when the user is typing inside the editor panel.
+            document.getElementById('indicatorEditorPanel').addEventListener('keydown', function(e) {
+                e.stopPropagation();
+            }, true);
+
+            // Re-size CodeMirror whenever the window resizes (and panel is open)
+            $(window).on('resize.ied', function() {
+                if (g_iedOpen) iedResizeEditor();
+            });
+        });
+
+    </script>
+
+</body>
+</html>
