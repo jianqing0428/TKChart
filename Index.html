@@ -2524,14 +2524,13 @@
                 });
             })();
 
-            // Keyboard isolation: prevent chart hotkeys while typing in the panel
+            // Keyboard isolation — 冒泡阶段（不传 true / 默认 false）：
+            // CodeMirror 先在目标阶段完整处理 keydown（Backspace / Delete / Ctrl+A 等），
+            // 之后冒泡到此处再阻止传播，避免图表快捷键响应。
+            // Escape 在此处直接消费，不需要再继续传播。
             document.getElementById('floatEditorPanel').addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && fepOpen) { toggleFloatEditor(); return; }
                 e.stopPropagation();
-            }, true);
-
-            // Escape closes the panel
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && fepOpen) toggleFloatEditor();
             });
 
             // Re-size CodeMirror on window resize when panel is open
