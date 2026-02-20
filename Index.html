@@ -574,6 +574,7 @@
                 [
                     {
                         SplitCount:12,      // Y轴横线数（增密，每格约40px）
+                        MinYDistance: 40,   // 纵坐标刻度最小像素间距
                         XSplitCount:15,     // X轴竖线数（半边），全图约30条
                         IsShowXLine:true,   // 显示竖向网格线
                         IsShowYLine:true,   // 显示横向网格线
@@ -594,8 +595,8 @@
 
                     },
 
-                    { SplitCount:5, BottomSpace:18,FilterType:1 },
-                    { SplitCount:4,FilterType:1 }
+                    { SplitCount:5, MinYDistance: 40, BottomSpace:18,FilterType:1 },
+                    { SplitCount:4, MinYDistance: 40, FilterType:1 }
                 ],
 
                 ExtendChart:    //扩展图形
