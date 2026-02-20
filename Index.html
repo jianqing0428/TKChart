@@ -54,6 +54,9 @@
          ============================================================ -->
     <div id="floatEditorPanel">
 
+        <!-- Left-edge drag handle (resize panel width) -->
+        <div class="fep-resizer" id="fepResizer"></div>
+
         <!-- Header -->
         <div class="fep-header">
             <span class="fep-title">&#9642; Indicator Editor</span>
@@ -147,7 +150,7 @@
                         <pre id="fep-test-output">Run "Check Syntax" to see results.</pre>
                     </div>
                     <div class="fep-tab-panel" id="fep-panel-xlate" style="display:none;">
-                        <p class="fep-placeholder">Dynamic translation — coming soon.</p>
+                        <pre id="fep-xlate-output">Run "Check Syntax" to see semantic output.</pre>
                     </div>
                 </div>
             </div><!-- /.fep-status-col -->
@@ -1094,47 +1097,67 @@
                     Callback:(data)=>
                     {
                         console.log("[Explain] data ", data);
-                        var strLog="";
-                        for(var i=0;i<data.length;++i)
+
+                        // ── Split results into two streams ──────────────────
+                        // Type === 0 → computed variable value  → 测试结果
+                        // Type !== 0 → draw / semantic command  → 动态翻译
+                        var testLines  = [];
+                        var xlateLines = [];
+
+                        for (var i=0; i<data.length; ++i)
                         {
                             var item=data[i];
-                            if (item.Type==0) strLog+=item.Data+'\n';
-                            else strLog+=item.Draw+'\n';
+                            if (item.Type===0)
+                                testLines.push(item.Data);
+                            else
+                                xlateLines.push(item.Draw);
 
                             if (i>30)
                             {
-                                strLog+='......';   //太多了就不显示了
+                                testLines.push('......');
+                                xlateLines.push('......');
                                 break;
                             }
                         }
 
-                        // 优先写入面板测试区；面板不存在时退回 alert
-                        var out=document.getElementById('fep-test-output');
-                        if (out)
+                        // ── 测试结果 tab — computation values ───────────────
+                        var testOut=document.getElementById('fep-test-output');
+                        if (testOut)
                         {
-                            out.textContent='✓ Syntax OK\n\n'+strLog;
-                            fepSwitchTab('test');
+                            testOut.className='ok';
+                            testOut.textContent='✓ Syntax OK\n\n'+(testLines.join('\n') || '(no computed values)');
                         }
-                        else
-                        {
-                            alert("语法正确\n"+strLog);
-                        }
+
+                        // ── 动态翻译 tab — semantic / draw interpretation ───
+                        var xlateOut=document.getElementById('fep-xlate-output');
+                        if (xlateOut)
+                            xlateOut.textContent=xlateLines.join('\n') || '(no draw commands)';
+
+                        // Auto-switch to 动态翻译 so the user sees semantics
+                        fepSwitchTab('xlate');
                     },
 
                     Arguments: indexInfo.Args,
                 };
 
-                JSComplier.Explain(indexInfo.Script, option, (error, data)=>
+                JSComplier.Explain(indexInfo.Script, option, (error)=>
                 {
-                    console.log("[Explain] error, data ", error, data);
-                    var msg=`语法错误: 行号:${error.LineNumber}, ${error.Description}`;
-                    var out=document.getElementById('fep-test-output');
-                    if (out)
+                    console.log("[Explain] error", error);
+                    var msg=`语法错误: 行号 ${error.LineNumber} — ${error.Description}`;
+
+                    // ── 测试结果 tab — show error in red, no alert ──────────
+                    var testOut=document.getElementById('fep-test-output');
+                    if (testOut)
                     {
-                        out.textContent='✗ '+msg;
-                        fepSwitchTab('test');
+                        testOut.className='err';
+                        testOut.textContent='✗ '+msg;
                     }
-                    alert(msg);
+
+                    // Clear translation panel on error
+                    var xlateOut=document.getElementById('fep-xlate-output');
+                    if (xlateOut) xlateOut.textContent='';
+
+                    fepSwitchTab('test');
                 });
             }
 
@@ -2355,6 +2378,45 @@
                 });
             });
 
+            // ================================================================
+            // Left-edge resizer — drag to resize panel width
+            // ================================================================
+            (function()
+            {
+                var resizer = document.getElementById('fepResizer');
+                var panel   = document.getElementById('floatEditorPanel');
+                var startX, startW;
+
+                resizer.addEventListener('mousedown', function(e)
+                {
+                    e.preventDefault();
+                    startX = e.clientX;
+                    startW = panel.offsetWidth;
+                    resizer.classList.add('dragging');
+
+                    function onMove(e)
+                    {
+                        // dragging left  = larger panel; dragging right = smaller
+                        var delta = startX - e.clientX;
+                        var newW  = startW + delta;
+                        // clamp between min-width (260px) and max-width (85vw)
+                        newW = Math.max(260, Math.min(Math.round(window.innerWidth * 0.85), newW));
+                        panel.style.width = newW + 'px';
+                        if (fepOpen) fepResizeEditor();
+                    }
+
+                    function onUp()
+                    {
+                        resizer.classList.remove('dragging');
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup',   onUp);
+                    }
+
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup',   onUp);
+                });
+            })();
+
             // Keyboard isolation: prevent chart hotkeys while typing in the panel
             document.getElementById('floatEditorPanel').addEventListener('keydown', function(e) {
                 e.stopPropagation();
@@ -2695,16 +2757,39 @@ select, input[type="text"], input[type="search"]
     position: fixed;
     top: 38px;          /* below #PeriodTab */
     right: 0;
-    width: 50%;
+    width: 33.33%;      /* default 1/3 screen; JS resizer can override */
+    min-width: 260px;
+    max-width: 85vw;
     bottom: 0;
     z-index: 1000;
     display: none;      /* toggled to flex by JS */
     flex-direction: column;
     background: #131722;
-    border-left: 1px solid #434651;
+    /* left border is now the resizer track; no static border-left here */
     font-family: "Trebuchet MS", Arial, sans-serif;
     color: #d1d4dc;
     overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* ── Left-edge drag handle ───────────────────────────────────── */
+.fep-resizer
+{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #434651;
+    cursor: col-resize;
+    z-index: 10;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+.fep-resizer:hover,
+.fep-resizer.dragging
+{
+    background: #2962ff;
 }
 
 /* ── Header ───────────────────────────────────────────────────── */
@@ -3012,6 +3097,20 @@ select, input[type="text"], input[type="search"]
     font-size: 11px;
     font-family: "Trebuchet MS", Consolas, monospace;
     color: #d1d4dc;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+#fep-test-output.ok  { color: #089981; }   /* ✓ success — TV green  */
+#fep-test-output.err { color: #f23645; }   /* ✗ error   — TV red    */
+
+/* Dynamic translation output */
+#fep-xlate-output
+{
+    margin: 0;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-family: "Trebuchet MS", Consolas, monospace;
+    color: #B2B5BE;
     white-space: pre-wrap;
     word-break: break-all;
 }
