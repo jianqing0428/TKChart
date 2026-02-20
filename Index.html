@@ -183,6 +183,113 @@
     <script src="../jscommon/iyxchart.resource/js/codemirror/codemirror.js"></script>
     <script src="../jscommon/iyxchart.resource/js/codemirror/javascript.js"></script>
 
+    <!-- IYX 公式高亮模式 — 独立 tokenizer，必须在 fromTextArea() 之前加载 -->
+    <script>
+    (function() {
+
+        /* ── 数据字段 → token: 'keyword'  ────────────────────────────── */
+        var DATA_KWORDS = new Set([
+            'CLOSE','OPEN','HIGH','LOW','VOL','AMOUNT','VOLR','CAPITAL',
+            'C','O','H','L','V','A',
+            'BARPOS','BARSCOUNT','BACKSET','BARSLAST',
+            'DATE','TIME','DAY','WEEK','MONTH','YEAR',
+            'ISLASTBAR','ISUP','ISDOWN'
+        ]);
+
+        /* ── 内置函数 → token: 'builtin'  ────────────────────────────── */
+        var BUILTIN_FUNS = new Set([
+            'MA','EMA','SMA','WMA','DMA','EXPMA','EXPMEMA',
+            'MACD','DIF','DEA','RSI','KDJ','BOLL','ATR','CCI','WR','BIAS','DMI','ADX',
+            'ROC','MOM','TRIX','CR','PSY','DPO','VHF','MASS',
+            'CROSS','LONGCROSS','COUNT','COUNTIF','SUM','FILTER',
+            'ABS','MAX','MIN','ROUND','CEILING','FLOOR','MOD','AVEDEV',
+            'REF','REFV','LLV','HHV','LLVBARS','HHVBARS','SLOPE','FORCAST',
+            'IF','IFF','IFN','INTPART','FRACT',
+            'DRAWTEXT','DRAWKLINE','DRAWICON','DRAWARROW','DRAWRECTREL',
+            'DRAWLINE','DRAWNUMBER','DRAWBAND','DRAWBMP','DRAWNULL',
+            'DRAWLASTBARTEXT','DRAWLASTBARNUMBER','DRAWCOLORKLINE',
+            'FILLRGN','PLOYLINE','PARTLINE','COLORSTICK','STICKLINE','LINENULL',
+            'ALIGN0','ALIGN1','ALIGN2','ALIGN3',
+            'VALIGN0','VALIGN1','VALIGN2','VALIGN3',
+            'FONTSIZE8','FONTSIZE9','FONTSIZE10','FONTSIZE11','FONTSIZE12',
+            'FONTSIZE14','FONTSIZE16','FONTSIZE18','FONTSIZE20','FONTSIZE24',
+            'STICK','DOTLINE','NODRAW','NOFRAME','NOAXIS',
+            'LINETHICK1','LINETHICK2','LINETHICK3','LINETHICK4','LINETHICK5',
+            'BACKGROUND','YMOVE','TEXTPOS','OFFSET','RGBA','RGB'
+        ]);
+
+        /* ── 颜色常量 → token: 'clr-X'                                  */
+        /*    颜色值来源: JSComplier.ColorVarToRGB                        */
+        /*    CSS 类: .cm-clr-X — 每个常量用其真实颜色值渲染              */
+        var COLOR_TOKEN = {
+            'COLORBLACK':    'clr-black',
+            'COLORBLUE':     'clr-blue',
+            'COLORGREEN':    'clr-green',
+            'COLORCYAN':     'clr-cyan',
+            'COLORRED':      'clr-red',
+            'COLORMAGENTA':  'clr-magenta',
+            'COLORBROWN':    'clr-brown',
+            'COLORLIGRAY':   'clr-ligray',
+            'COLORGRAY':     'clr-gray',
+            'COLORLIBLUE':   'clr-liblue',
+            'COLORLIGREEN':  'clr-ligreen',
+            'COLORLICYAN':   'clr-licyan',
+            'COLORLIRED':    'clr-lired',
+            'COLORLIMAGENTA':'clr-limagenta',
+            'COLORWHITE':    'clr-white',
+            'COLORYELLOW':   'clr-yellow'
+        };
+
+        CodeMirror.defineMode('iyx-formula', function() {
+            return {
+                startState: function() { return { inBlock: false }; },
+
+                token: function(stream, state) {
+                    if (stream.eatSpace()) return null;
+
+                    /* 块注释 { ... } — 最高优先级，防止内部关键词被误高亮 */
+                    if (state.inBlock) {
+                        if (stream.match('}')) state.inBlock = false;
+                        else stream.next();
+                        return 'comment';
+                    }
+                    if (stream.peek() === '{') {
+                        stream.next(); state.inBlock = true; return 'comment';
+                    }
+
+                    /* 行注释 // */
+                    if (stream.match('//')) { stream.skipToEnd(); return 'comment'; }
+
+                    /* 字符串 '...' */
+                    if (stream.peek() === "'") {
+                        stream.next();
+                        while (!stream.eol() && stream.peek() !== "'") stream.next();
+                        if (!stream.eol()) stream.next();
+                        return 'string';
+                    }
+
+                    /* 数字（整数 / 浮点） */
+                    if (stream.match(/^[0-9]+(\.[0-9]+)?/)) return 'number';
+
+                    /* 标识符 — 优先级：颜色常量 > 数据字段 > 内置函数 > 用户变量 */
+                    if (stream.match(/^[A-Za-z_][A-Za-z0-9_]*/)) {
+                        var word = stream.current().toUpperCase();
+                        if (COLOR_TOKEN[word])       return COLOR_TOKEN[word];
+                        if (DATA_KWORDS.has(word))   return 'keyword';
+                        if (BUILTIN_FUNS.has(word))  return 'builtin';
+                        return 'variable';
+                    }
+
+                    /* 运算符 / 标点 */
+                    stream.next();
+                    return 'operator';
+                }
+            };
+        });
+
+    })();
+    </script>
+
     <script src="../jscommon/iyxchart.testdata/60000.sh.capital.kline.js"></script>
     <script src="../jscommon/iyxchart.testdata/60000.sh.NewsInteract.js"></script>
     <script src="../jscommon/iyxchart.testdata/60000.sh.BlockTrading.js"></script>
@@ -1131,7 +1238,7 @@
                         // ── 动态翻译 tab — semantic / draw interpretation ───
                         var xlateOut=document.getElementById('fep-xlate-output');
                         if (xlateOut)
-                            xlateOut.textContent=xlateLines.join('\n') || '(no draw commands)';
+                            xlateOut.innerHTML=xlateLines.join('\n') || '(no draw commands)';
 
                         // Auto-switch to 动态翻译 so the user sees semantics
                         fepSwitchTab('xlate');
@@ -1155,7 +1262,7 @@
 
                     // Clear translation panel on error
                     var xlateOut=document.getElementById('fep-xlate-output');
-                    if (xlateOut) xlateOut.textContent='';
+                    if (xlateOut) xlateOut.innerHTML='';
 
                     fepSwitchTab('test');
                 });
@@ -2217,7 +2324,7 @@
             var jsEditor;
             $('#tools_code').val(DEFAULT_CODE);
             jsEditor = CodeMirror.fromTextArea($('#tools_code').get(0), {
-                mode: "javascript",
+                mode: "iyx-formula",
                 lineNumbers: true,
                 indentWithTabs: false,
                 tabSize: 4,
@@ -3122,7 +3229,7 @@ select, input[type="text"], input[type="search"]
     color: #434651;
 }
 
-/* ── CodeMirror overrides — dark theme inside the panel ────────  */
+/* ── CodeMirror 编辑器结构样式 ────────────────────────────────── */
 #floatEditorPanel .CodeMirror
 {
     background: #0b0e14 !important;
@@ -3149,6 +3256,47 @@ select, input[type="text"], input[type="search"]
 {
     background: rgba(41,98,255,0.25) !important;
 }
+
+/* ── IYX 公式 token 颜色 (theme: fep-dark) ──────────────────────
+   对应 iyx-formula mode 返回的 token 类型
+   CodeMirror 自动添加 cm- 前缀，e.g. 'builtin' → .cm-builtin
+─────────────────────────────────────────────────────────────── */
+
+/* 注释 { } 和 //                                                 */
+#floatEditorPanel .cm-s-fep-dark .cm-comment   { color: #546e7a; font-style: italic; }
+/* 字符串 '...'                                                   */
+#floatEditorPanel .cm-s-fep-dark .cm-string    { color: #c3e88d; }
+/* 数字字面量                                                     */
+#floatEditorPanel .cm-s-fep-dark .cm-number    { color: #f78c6c; }
+/* 运算符 / 标点                                                  */
+#floatEditorPanel .cm-s-fep-dark .cm-operator  { color: #89ddff; }
+/* 数据字段: CLOSE OPEN HIGH LOW VOL C O H L V ...               */
+#floatEditorPanel .cm-s-fep-dark .cm-keyword   { color: #ff5370; font-weight: bold; }
+/* 内置函数: MA EMA RSI DRAWTEXT IF CROSS ...                     */
+#floatEditorPanel .cm-s-fep-dark .cm-builtin   { color: #82aaff; }
+/* 用户定义变量: MA1 DIF2 VARHIGH ...                             */
+#floatEditorPanel .cm-s-fep-dark .cm-variable  { color: #eeffff; }
+
+/* ── 颜色常量 — 直接渲染为其对应的真实颜色 ──────────────────────
+   颜色值来源: JSComplier.ColorVarToRGB (iyxchart.complier.js)
+   示例: ,COLORYELLOW 在编辑器中显示为亮黄色
+─────────────────────────────────────────────────────────────── */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-black    { color: #888888; }            /* COLORBLACK   (暗背景调亮) */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-blue     { color: rgb(18,95,216);   }   /* COLORBLUE     */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-green    { color: rgb(25,158,0);    }   /* COLORGREEN    */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-cyan     { color: rgb(0,255,198);   }   /* COLORCYAN     */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-red      { color: rgb(238,21,21);   }   /* COLORRED      */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-magenta  { color: rgb(255,0,222);   }   /* COLORMAGENTA  */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-brown    { color: rgb(149,94,15);   }   /* COLORBROWN    */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-ligray   { color: rgb(218,218,218); }   /* COLORLIGRAY   */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-gray     { color: rgb(133,133,133); }   /* COLORGRAY     */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-liblue   { color: rgb(94,204,255);  }   /* COLORLIBLUE   */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-ligreen  { color: rgb(183,255,190); }   /* COLORLIGREEN  */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-licyan   { color: rgb(154,255,242); }   /* COLORLICYAN   */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-lired    { color: rgb(255,172,172); }   /* COLORLIRED    */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-limagenta{ color: rgb(255,145,241); }   /* COLORLIMAGENTA*/
+#floatEditorPanel .cm-s-fep-dark .cm-clr-white    { color: rgb(210,210,210); }   /* COLORWHITE    (暗背景调暗) */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-yellow   { color: rgb(255,198,0);   }   /* COLORYELLOW   */
 
 /* ── Thin dark scrollbars throughout the panel ────────────────── */
 #floatEditorPanel ::-webkit-scrollbar           { width: 5px; height: 5px; }
