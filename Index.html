@@ -33,6 +33,7 @@
         <div id="StockChip" class="TabItem" data-i18n="chip">Chip</div>
         <div id="BeforeOpen" class="TabItem" style="display:none;" data-i18n="pre">Pre</div>
         <div id="DrawTool" class="TabItem" data-i18n="draw">Draw</div>
+        <div id="btnOpenEditor" class="TabItem" title="Open Indicator Editor">Editor</div>
         <div id="LangBtn" class="TabItem LangBtn" data-i18n="lang">中</div>
         <div id="ThemeBtn" class="TabItem ThemeSwitcherBtn"><svg width="18" height="18" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 18a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M14 4.5V3h-1v1.5h1zM8.7 5.76l-1.06-1.06-.7.71 1.06 1.06.7-.7zM19.3 5.76l1.06-1.06.7.71-1.06 1.06-.7-.7zM4.5 13v1H3v-1h1.5zM21 13v1h1.5v-1H21zM5.76 19.3l-1.06 1.06.71.7 1.06-1.06-.7-.7zM18.24 19.3l1.06 1.06.7-.71-1.06-1.06-.7.7zM14 19.5V21h-1v-1.5h1z" fill="currentColor"/></svg></div>
     </div>
@@ -47,97 +48,113 @@
         </div>
     </div>
 
-    <!-- 公式编辑器 -->
-    <div class="tools">
-        <div id="tools_top" class="top">
-            <span data-i18n="idx-name">Indicator Name:</span>
-            <input class="input" id="index_name" value="MyIndicator1"/>
-            <select class="changeIndex" id="window_index">
-                <option value="1" data-i18n="idx-sub">Sub Chart</option>
-                <option value="0" data-i18n="idx-main">Main Chart</option>
-            </select>
+    <!-- ============================================================
+         Float Indicator Editor Panel  (Pine Editor style)
+         position:fixed — overlays the chart from the right side
+         ============================================================ -->
+    <div id="floatEditorPanel">
 
-            <input type="checkbox" id="exclude_y" name="exclude_y"/>
-            <label for="exclude_y" data-i18n="idx-exclude">Ignore Y-Axis</label>
-
-            <button class="toolsButton" id="index_run" data-i18n="idx-run">Run (Switch)</button>
-            <button class="toolsButton" id="add_index_window" data-i18n="idx-new">Run (New)</button>
-            <button class="toolsButton" id="index_check" data-i18n="idx-check">Check Syntax</button>
-            <button class="toolsButton" id="index_save" data-i18n="idx-save">Save</button>
-
-            <!--
-            <button class="toolsButton" id="SplashScreen">冻住</button>
-            <button class="toolsButton" id="SplashScreen2">解冻</button>
-            -->
-
-            <input type="checkbox" id="overlay_y" name="overlay_y"/>
-            <label for="overlay_y" data-i18n="idx-overlay">Overlay Indep. Y</label>
-
-            <button class="toolsButton" id="overlayindex_run" data-i18n="idx-overlay-run">Overlay Run</button>
-<!--
-            <button class="toolsButton" id="style_black">黑色风格</button>
-            <button class="toolsButton" id="style_white">白色风格</button>
-            <button class="toolsButton" id="showAllKLine">显示全部K线</button>
-
-            <span>K线支持键盘精灵</span>
-   
-            <a href="https://jones2000.blog.csdn.net/article/details/129125330" target="_blank">函数帮助</a>
-            <a href="" target="_blank">TKChart插件地址</a>
-         -->
+        <!-- Header -->
+        <div class="fep-header">
+            <span class="fep-title">&#9642; Indicator Editor</span>
+            <button class="fep-close" id="btnCloseEditor" title="Close (Esc)">&#10005;</button>
         </div>
-        <div class="table" id="tools_table">
-            <table cellpadding="0" cellspacing="0">
-                <thead>
-                    <tr>
-                        <th data-i18n="idx-param">Arguments</th>
-                        <th data-i18n="idx-value">Value</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            <input value="M1" id="param_name" />
-                        </td>
-                        <td>
-                            <input value="5" id="param_value"/>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <input value="M2" id="param_name_1"/>
-                        </td>
-                        <td>
-                            <input value="10" id="param_value_1"/>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <input value="M3" id="param_name_2"/>
-                        </td>
-                        <td>
-                            <input value="15" id="param_value_2"/>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <input value="M4" id="param_name_3"/>
-                        </td>
-                        <td>
-                            <input value="20" id="param_value_3"/>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="code">
-            <textarea id="tools_code"></textarea>
-        </div>
-        <div class="cache" id="tools_cache">
-            <ul id="local_index">
-              <li>ddddd <span class="toolsButton">ddsfds</span></li>
-            </ul>
-        </div>
-    </div>
+
+        <!-- Top section: Controls (left) | Params (right) -->
+        <div class="fep-top">
+
+            <!-- Left column — 4 control rows -->
+            <div class="fep-controls">
+                <!-- Row 1: name + window select -->
+                <div class="fep-ctrl-row">
+                    <input class="fep-input" id="index_name" value="MyIndicator1"
+                           autocomplete="off" spellcheck="false" data-i18n-ph="idx-name" />
+                    <select class="fep-select" id="window_index">
+                        <option value="1" data-i18n="idx-sub">Sub Chart</option>
+                        <option value="0" data-i18n="idx-main">Main Chart</option>
+                    </select>
+                </div>
+                <!-- Row 2: Run Switch + Run New + Ignore Y -->
+                <div class="fep-ctrl-row">
+                    <button class="fep-btn fep-btn-primary" id="index_run" data-i18n="idx-run">&#9654; Run</button>
+                    <button class="fep-btn" id="add_index_window" data-i18n="idx-new">+ New</button>
+                    <label class="fep-check-lbl">
+                        <input type="checkbox" id="exclude_y" name="exclude_y" />
+                        <span data-i18n="idx-exclude">Ignore Y</span>
+                    </label>
+                </div>
+                <!-- Row 3: Overlay run + Overlay Indep Y -->
+                <div class="fep-ctrl-row">
+                    <button class="fep-btn" id="overlayindex_run" data-i18n="idx-overlay-run">Overlay</button>
+                    <label class="fep-check-lbl">
+                        <input type="checkbox" id="overlay_y" name="overlay_y" />
+                        <span data-i18n="idx-overlay">Indep. Y</span>
+                    </label>
+                </div>
+                <!-- Row 4: Check Syntax + Save -->
+                <div class="fep-ctrl-row">
+                    <button class="fep-btn" id="index_check" data-i18n="idx-check">&#10003; Syntax</button>
+                    <button class="fep-btn fep-btn-save" id="index_save" data-i18n="idx-save">&#11015; Save</button>
+                </div>
+            </div><!-- /.fep-controls -->
+
+            <!-- Right column — 4 param rows (M1–M4) -->
+            <div class="fep-params">
+                <div class="fep-param-row">
+                    <input class="fep-pname" id="param_name"   value="M1" />
+                    <span  class="fep-peq">=</span>
+                    <input class="fep-pval"  id="param_value"  value="5"  type="number" min="1" />
+                </div>
+                <div class="fep-param-row">
+                    <input class="fep-pname" id="param_name_1" value="M2" />
+                    <span  class="fep-peq">=</span>
+                    <input class="fep-pval"  id="param_value_1" value="10" type="number" min="1" />
+                </div>
+                <div class="fep-param-row">
+                    <input class="fep-pname" id="param_name_2" value="M3" />
+                    <span  class="fep-peq">=</span>
+                    <input class="fep-pval"  id="param_value_2" value="15" type="number" min="1" />
+                </div>
+                <div class="fep-param-row">
+                    <input class="fep-pname" id="param_name_3" value="M4" />
+                    <span  class="fep-peq">=</span>
+                    <input class="fep-pval"  id="param_value_3" value="20" type="number" min="1" />
+                </div>
+            </div><!-- /.fep-params -->
+
+        </div><!-- /.fep-top -->
+
+        <!-- Middle section: Editor (left) | Status/List (right) -->
+        <div class="fep-middle">
+
+            <!-- Left: CodeMirror editor -->
+            <div class="fep-editor-col">
+                <textarea id="tools_code"></textarea>
+            </div>
+
+            <!-- Right: tabbed status / list panel -->
+            <div class="fep-status-col">
+                <div class="fep-tab-bar">
+                    <button class="fep-tab active" data-tab="list">指标列表</button>
+                    <button class="fep-tab"         data-tab="test">测试结果</button>
+                    <button class="fep-tab"         data-tab="xlate">动态翻译</button>
+                </div>
+                <div class="fep-tab-content">
+                    <div class="fep-tab-panel" id="fep-panel-list">
+                        <ul id="local_index"></ul>
+                    </div>
+                    <div class="fep-tab-panel" id="fep-panel-test" style="display:none;">
+                        <pre id="fep-test-output">Run "Check Syntax" to see results.</pre>
+                    </div>
+                    <div class="fep-tab-panel" id="fep-panel-xlate" style="display:none;">
+                        <p class="fep-placeholder">Dynamic translation — coming soon.</p>
+                    </div>
+                </div>
+            </div><!-- /.fep-status-col -->
+
+        </div><!-- /.fep-middle -->
+
+    </div><!-- /#floatEditorPanel -->
 
     <script src="../jscommon/iyxchart.resource/js/jquery.min.js"></script>
     <script src="../jscommon/iyxchart.resource/js/webfont.js"></script>
@@ -932,7 +949,7 @@
 
             this.OnSize=function(option)  //自适应大小调整
             {
-                var height= $(window).height()-335;  // 300 工具栏 + 35 顶部周期tab
+                var height= $(window).height()-38;  // 38px = #PeriodTab height
                 var width = $(window).width();
 
                 this.DivKLine.style.top='0px';
@@ -1091,7 +1108,17 @@
                             }
                         }
 
-                        alert("语法正确\n"+strLog);
+                        // 优先写入面板测试区；面板不存在时退回 alert
+                        var out=document.getElementById('fep-test-output');
+                        if (out)
+                        {
+                            out.textContent='✓ Syntax OK\n\n'+strLog;
+                            fepSwitchTab('test');
+                        }
+                        else
+                        {
+                            alert("语法正确\n"+strLog);
+                        }
                     },
 
                     Arguments: indexInfo.Args,
@@ -1100,7 +1127,14 @@
                 JSComplier.Explain(indexInfo.Script, option, (error, data)=>
                 {
                     console.log("[Explain] error, data ", error, data);
-                    alert(`语法错误: 行号:${error.LineNumber}, ${error.Description}`);
+                    var msg=`语法错误: 行号:${error.LineNumber}, ${error.Description}`;
+                    var out=document.getElementById('fep-test-output');
+                    if (out)
+                    {
+                        out.textContent='✗ '+msg;
+                        fepSwitchTab('test');
+                    }
+                    alert(msg);
                 });
             }
 
@@ -2042,7 +2076,7 @@
 
             this.OnSize=function(option)  //自适应大小调整
             {
-                var height= $(window).height()-335;  // 300 工具栏 + 35 顶部周期tab
+                var height= $(window).height()-38;  // 38px = #PeriodTab height
                 this.DivKLine.style.height=height+'px';
                 //this.Chart.OnSize(option);
             }
@@ -2161,11 +2195,16 @@
             $('#tools_code').val(DEFAULT_CODE);
             jsEditor = CodeMirror.fromTextArea($('#tools_code').get(0), {
                 mode: "javascript",
-                gutter: true,
-                lineNumbers: true
-            })
-            jsEditor.setSize('99.8%', 257);
-            jsEditor.gutter = true;
+                lineNumbers: true,
+                indentWithTabs: false,
+                tabSize: 4,
+                theme: 'fep-dark',   // matched by CSS overrides below
+                extraKeys: {
+                    'F5':         function() { klineControl.ExecuteIndexScript(); },
+                    'Ctrl-Enter': function() { klineControl.ExecuteIndexScript(); }
+                }
+            });
+            jsEditor.setSize('100%', '100%');
 
             klineControl.IndexEdit=jsEditor;
 
@@ -2258,6 +2297,78 @@
 
             DeleteLocalIndex=(e, name)=>{ klineControl.DeleteLocalIndex(e, name); }
             SelectLocalIndex=(e, name)=> { klineControl.SelectLocalIndex(e, name); }
+
+            // ================================================================
+            // Float Editor Panel — toggle, tab switching, keyboard isolation
+            // ================================================================
+
+            var fepOpen = false;
+
+            // Switch the right-column tab (called externally by CheckIndexScript)
+            window.fepSwitchTab = function(tabName)
+            {
+                document.querySelectorAll('.fep-tab').forEach(function(t) {
+                    t.classList.toggle('active', t.dataset.tab === tabName);
+                });
+                document.querySelectorAll('.fep-tab-panel').forEach(function(p) {
+                    p.style.display = 'none';
+                });
+                var panel = document.getElementById('fep-panel-' + tabName);
+                if (panel) panel.style.display = 'block';
+            };
+
+            // Resize CodeMirror to fill its flex container after panel opens
+            function fepResizeEditor()
+            {
+                var col = document.querySelector('.fep-editor-col');
+                if (col && jsEditor)
+                    jsEditor.setSize('100%', col.clientHeight + 'px');
+            }
+
+            // Open / close the panel
+            function toggleFloatEditor()
+            {
+                fepOpen = !fepOpen;
+                var panel  = document.getElementById('floatEditorPanel');
+                var btn    = document.getElementById('btnOpenEditor');
+                if (fepOpen)
+                {
+                    panel.style.display = 'flex';
+                    btn.classList.add('active');
+                    setTimeout(fepResizeEditor, 0);
+                }
+                else
+                {
+                    panel.style.display = 'none';
+                    btn.classList.remove('active');
+                }
+            }
+
+            // Trigger buttons
+            document.getElementById('btnOpenEditor').addEventListener('click', toggleFloatEditor);
+            document.getElementById('btnCloseEditor').addEventListener('click', toggleFloatEditor);
+
+            // Tab bar switching
+            document.querySelectorAll('.fep-tab').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    fepSwitchTab(this.dataset.tab);
+                });
+            });
+
+            // Keyboard isolation: prevent chart hotkeys while typing in the panel
+            document.getElementById('floatEditorPanel').addEventListener('keydown', function(e) {
+                e.stopPropagation();
+            }, true);
+
+            // Escape closes the panel
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && fepOpen) toggleFloatEditor();
+            });
+
+            // Re-size CodeMirror on window resize when panel is open
+            $(window).on('resize.fep', function() {
+                if (fepOpen) fepResizeEditor();
+            });
 
             //自定义函数和变量
             JSComplier.AddFunction({ Name:'FUNC_ALPHA', Description:'自定义Alpha函数', IsDownload:true, Invoke:(obj)=>{ return HQData.FUNC_ALPHA(obj); } } );
@@ -2575,124 +2686,376 @@ select, input[type="text"], input[type="search"]
 }
 
 /* ================================================================
-   公式编辑器区域 — 始终白色，不受皮肤切换影响
+   FLOAT EDITOR PANEL  (#floatEditorPanel)
+   Pine Editor style — fixed right-side overlay
    ================================================================ */
-.tools,
-.tools .top,
-.tools .table,
-.tools .code,
-.tools .cache
-{
-    background-color: #ffffff !important;
-    color: #333333 !important;
-}
 
-.tools .table table,
-.tools .table table tbody td,
-.tools .table table thead th,
-.tools .table table td input
+#floatEditorPanel
 {
-    background-color: #ffffff !important;
-    color: #333333 !important;
-}
-
-.tools .top .toolsButton,
-.tools .top .input,
-.tools .top .changeIndex,
-.tools .top label
-{
-    background-color: #ffffff !important;
-    color: #333333 !important;
-}
-
-/* CodeMirror 编辑器始终白色，字体跟随全局设定 */
-.CodeMirror,
-.CodeMirror-scroll
-{
-    background-color: #ffffff !important;
-    color: #333333 !important;
-    font-family: "Trebuchet MS", Arial, sans-serif !important;
-    font-size: 13px !important;
-}
-
-/* ---- 公式编辑器原有样式（保持不变） ---- */
-.tools {
-    width: 100%;
-}
-.tools .top {
-    margin-bottom: 2px;
-}
-.tools .top .toolsButton {
-    height: 32px;
-    padding: 0 8px;
-    cursor: pointer;
+    position: fixed;
+    top: 38px;          /* below #PeriodTab */
+    right: 0;
+    width: 50%;
+    bottom: 0;
+    z-index: 1000;
+    display: none;      /* toggled to flex by JS */
+    flex-direction: column;
+    background: #131722;
+    border-left: 1px solid #434651;
     font-family: "Trebuchet MS", Arial, sans-serif;
-    font-size: 12px;
-    letter-spacing: 0.5px;
+    color: #d1d4dc;
+    overflow: hidden;
 }
-.tools .top span {
-    padding-left: 2px;
+
+/* ── Header ───────────────────────────────────────────────────── */
+.fep-header
+{
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 36px;
+    padding: 0 12px;
+    background: #1e222d;
+    border-bottom: 1px solid #434651;
 }
-.tools .top .input {
+
+.fep-title
+{
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #787b86;
+}
+
+.fep-close
+{
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: #787b86;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, color 0.12s;
+}
+.fep-close:hover { background: rgba(255,255,255,0.08); color: #d1d4dc; }
+
+/* ── Top section — two columns ────────────────────────────────── */
+.fep-top
+{
+    flex-shrink: 0;
+    display: flex;
+    border-bottom: 1px solid #434651;
+}
+
+/* Left: 4 control rows */
+.fep-controls
+{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 5px 8px;
+    gap: 4px;
+    border-right: 1px solid #2a2e39;
+    min-width: 0;
+}
+
+.fep-ctrl-row
+{
+    display: flex;
+    align-items: center;
+    gap: 5px;
     height: 28px;
-    padding-left: 5px;
-}
-.tools .top .changeIndex {
-    height: 32px;
-    width: 90px;
 }
 
-.tools .table {
-    width: 19.5%;
-    float: left;
+.fep-input
+{
+    flex: 1;
+    height: 24px;
+    padding: 0 6px;
+    background: #0b0e14;
+    border: 1px solid #2a2e39;
+    border-radius: 3px;
+    color: #d1d4dc;
+    font-size: 11px;
+    font-family: inherit;
+    outline: none;
+    min-width: 0;
+}
+.fep-input:focus { border-color: #2962ff; }
+
+.fep-select
+{
+    height: 24px;
+    padding: 0 4px;
+    background: #0b0e14;
+    border: 1px solid #2a2e39;
+    border-radius: 3px;
+    color: #d1d4dc;
+    font-size: 11px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    flex-shrink: 0;
 }
 
-.tools .table table {
-    width: 100%;
-    border-left: 1px solid #e0e3eb;
-    border-top: 1px solid #e0e3eb;
-    margin-left: 1px;
+.fep-btn
+{
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 3px;
+    border: 1px solid #2a2e39;
+    background: #1e222d;
+    color: #d1d4dc;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.1s, border-color 0.1s;
+}
+.fep-btn:hover { background: #2a2e39; border-color: #4c525e; }
+
+.fep-btn-primary
+{
+    background: #2962ff;
+    border-color: #2962ff;
+    color: #fff;
+    font-weight: 600;
+}
+.fep-btn-primary:hover { background: #1c4ed8; border-color: #1c4ed8; }
+
+.fep-btn-save { color: #089981; border-color: rgba(8,153,129,0.4); }
+.fep-btn-save:hover { background: rgba(8,153,129,0.15); border-color: #089981; }
+
+.fep-check-lbl
+{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #787b86;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.fep-check-lbl input { margin: 0; cursor: pointer; }
+
+/* Active Editor button in period tab */
+#btnOpenEditor.active { color: #2962ff; border-bottom: 2px solid #2962ff; }
+
+/* Right: param rows */
+.fep-params
+{
+    width: 160px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    padding: 5px 8px;
+    gap: 4px;
 }
 
-.tools .table table tbody td, .tools .table table thead th {
-    border-right: 1px solid #e0e3eb;
-    border-bottom: 1px solid #e0e3eb;
-    height: 25px;
-    padding: 5px;
-    width: 95px;
-    text-align: left;
+.fep-param-row
+{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 26px;
+    background: #0b0e14;
+    border: 1px solid #2a2e39;
+    border-radius: 3px;
+    padding: 0 6px;
 }
 
-.tools .table table td input {
-    width: 50px;
+.fep-pname
+{
+    width: 34px;
+    background: transparent;
+    border: none;
+    color: #787b86;
+    font-size: 11px;
+    font-family: inherit;
+    outline: none;
 }
 
-.tools .code {
-    float: left;
-    width: 60.5%;
+.fep-peq { color: #434651; font-size: 11px; flex-shrink: 0; }
+
+.fep-pval
+{
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #d1d4dc;
+    font-size: 11px;
+    font-family: inherit;
+    outline: none;
+    text-align: right;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.fep-pval::-webkit-outer-spin-button,
+.fep-pval::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+/* ── Middle section — flex:1, fills remaining height ─────────── */
+.fep-middle
+{
+    flex: 1;
+    display: flex;
+    overflow: hidden;
 }
 
-.tools .cache {
-    float: left;
-    width: 19.8%;
-    border: 1px solid #e0e3eb;
-    height: 257px;
-    margin-left: -1px;
+/* Left: CodeMirror column */
+.fep-editor-col
+{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid #434651;
+    position: relative;
+}
+
+/* Right: status / list column */
+.fep-status-col
+{
+    width: 200px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ── Right-column tab bar ─────────────────────────────────────── */
+.fep-tab-bar
+{
+    flex-shrink: 0;
+    display: flex;
+    background: #1e222d;
+    border-bottom: 1px solid #434651;
+}
+
+.fep-tab
+{
+    flex: 1;
+    height: 28px;
+    padding: 0 3px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #787b86;
+    font-size: 10px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.1s, border-color 0.1s;
+}
+.fep-tab:hover { color: #d1d4dc; }
+.fep-tab.active { color: #d1d4dc; border-bottom-color: #2962ff; }
+
+/* ── Tab content panels ───────────────────────────────────────── */
+.fep-tab-content
+{
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.fep-tab-panel
+{
+    position: absolute;
+    inset: 0;
     overflow-y: auto;
 }
-.tools .cache li {
-    padding: 5px;
-    height: 18px;
+
+/* Saved indicator list */
+#fep-panel-list #local_index
+{
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
-.tools .cache li.active, .tools .cache li:hover {
-    background-color: #26B99A;
-    color: #fff;
+
+#fep-panel-list #local_index li
+{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 10px;
+    font-size: 11px;
+    color: #d1d4dc;
     cursor: pointer;
+    border-bottom: 1px solid #1e222d;
 }
-.tools .cache li span {
-    float: right;
-    margin-right: 5px;
+#fep-panel-list #local_index li:hover { background: #1e222d; }
+
+#fep-panel-list #local_index li span
+{
+    color: #f23645;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0 3px;
+    flex-shrink: 0;
 }
+
+/* Test result */
+#fep-test-output
+{
+    margin: 0;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-family: "Trebuchet MS", Consolas, monospace;
+    color: #d1d4dc;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.fep-placeholder
+{
+    padding: 10px;
+    font-size: 11px;
+    color: #434651;
+}
+
+/* ── CodeMirror overrides — dark theme inside the panel ────────  */
+#floatEditorPanel .CodeMirror
+{
+    background: #0b0e14 !important;
+    color: #d1d4dc !important;
+    font-family: "Trebuchet MS", Consolas, monospace !important;
+    font-size: 12px !important;
+    height: 100% !important;
+    border: none !important;
+}
+
+#floatEditorPanel .CodeMirror-scroll { overflow-y: auto !important; }
+
+#floatEditorPanel .CodeMirror-gutters
+{
+    background: #131722 !important;
+    border-right: 1px solid #2a2e39 !important;
+}
+
+#floatEditorPanel .CodeMirror-linenumber { color: #434651 !important; }
+#floatEditorPanel .CodeMirror-cursor    { border-left-color: #d1d4dc !important; }
+
+#floatEditorPanel .CodeMirror-selected,
+#floatEditorPanel .CodeMirror-line ::selection
+{
+    background: rgba(41,98,255,0.25) !important;
+}
+
+/* ── Thin dark scrollbars throughout the panel ────────────────── */
+#floatEditorPanel ::-webkit-scrollbar           { width: 5px; height: 5px; }
+#floatEditorPanel ::-webkit-scrollbar-track     { background: transparent; }
+#floatEditorPanel ::-webkit-scrollbar-thumb     { background: #434651; border-radius: 3px; }
+#floatEditorPanel ::-webkit-scrollbar-thumb:hover { background: #787b86; }
 
 /* ---- 绘图工具浮层保证在图表上方 ---- */
 .IYXChart_DrawTool_Dialog_Div
