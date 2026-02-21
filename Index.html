@@ -355,6 +355,135 @@
         var g_activeTabId = 'KLineDay'; // 当前选中的tab id
         var g_currentTheme = 'black';   // 当前皮肤：'black' | 'white'
         var g_currentLang  = 'EN';      // 当前语言：'EN' | 'CN'
+        var jsEditor       = null;      // CodeMirror 实例（全局，供 applyEditorTheme 访问）
+
+        // ================================================================
+        // 编辑器主题色彩映射表 & 辅助函数
+        // ================================================================
+        //
+        // getThemeColor(key)  — 返回当前主题下指定色键的色值字符串
+        // applyEditorTheme()  — 将当前主题的所有 --fep-* 变量写入 :root，
+        //                       并通知 CodeMirror 刷新布局
+        //
+        // 工作原理：
+        //   CSS 变量已按主题定义在 :root / :root[tkchart_style='0'] 块中，
+        //   正常切换时 CSS 引擎自动更新颜色（无需 JS）。
+        //   applyEditorTheme() 仅在需要强制刷新时显式写入变量，
+        //   并调用 jsEditor.refresh() 确保 CodeMirror 重新布局。
+        // ================================================================
+        var FEP_COLOR_MAP = {
+            dark: {
+                // 结构色
+                'bg':            '#0b0e14',
+                'text':          '#d1d4dc',
+                'gutter-bg':     '#131722',
+                'gutter-text':   '#434651',
+                'gutter-border': '#2a2e39',
+                'cursor':        '#d1d4dc',
+                'sep':           '#434651',
+                // 语法 token
+                'comment':       '#546e7a',
+                'string':        '#c3e88d',
+                'number':        '#f78c6c',
+                'operator':      '#89ddff',
+                'keyword':       '#ff5370',
+                'builtin':       '#82aaff',
+                'variable':      '#eeffff',
+                // 颜色常量（真实色值，来自 JSComplier.ColorVarToRGB）
+                'clr-black':     '#888888',
+                'clr-blue':      'rgb(18,95,216)',
+                'clr-green':     'rgb(25,158,0)',
+                'clr-cyan':      'rgb(0,255,198)',
+                'clr-red':       'rgb(238,21,21)',
+                'clr-magenta':   'rgb(255,0,222)',
+                'clr-brown':     'rgb(149,94,15)',
+                'clr-ligray':    'rgb(218,218,218)',
+                'clr-gray':      'rgb(133,133,133)',
+                'clr-liblue':    'rgb(94,204,255)',
+                'clr-ligreen':   'rgb(183,255,190)',
+                'clr-licyan':    'rgb(154,255,242)',
+                'clr-lired':     'rgb(255,172,172)',
+                'clr-limagenta': 'rgb(255,145,241)',
+                'clr-white':     'rgb(210,210,210)',
+                'clr-yellow':    'rgb(255,198,0)',
+                // 面板 UI 颜色
+                'panel-bg':       '#131722',
+                'header-bg':      '#1e222d',
+                'muted':          '#787b86',
+                'dim-text':       '#B2B5BE',
+                'surface-hover':  '#2a2e39',
+                'border-hover':   '#4c525e',
+                'close-hover-bg': 'rgba(255,255,255,0.08)'
+            },
+            light: {
+                // 结构色（浅色模式）
+                'bg':            '#f8fafc',
+                'text':          '#2a2e39',
+                'gutter-bg':     '#f0f3fa',
+                'gutter-text':   '#a0a3b0',
+                'gutter-border': '#dde0ea',
+                'cursor':        '#2a2e39',
+                'sep':           '#c8cad4',
+                // 语法 token（加深以保证浅色背景下的对比度）
+                'comment':       '#6e8ca0',
+                'string':        '#388E3C',   // 深绿
+                'number':        '#C84B31',   // 深橙红
+                'operator':      '#0277BD',   // 深蓝
+                'keyword':       '#B71C1C',   // 深红 — CLOSE OPEN …
+                'builtin':       '#1565C0',   // 深蓝 — MA EMA …
+                'variable':      '#2a2e39',   // 近黑
+                // 颜色常量（加深版，白底可读）
+                'clr-black':     '#000000',
+                'clr-blue':      '#1255CC',
+                'clr-green':     '#006400',   // COLORGREEN
+                'clr-cyan':      '#006B5E',
+                'clr-red':       '#B71C1C',   // COLORRED
+                'clr-magenta':   '#880088',
+                'clr-brown':     '#6D4C41',
+                'clr-ligray':    '#757575',
+                'clr-gray':      '#424242',
+                'clr-liblue':    '#0288D1',
+                'clr-ligreen':   '#2E7D32',
+                'clr-licyan':    '#00695C',
+                'clr-lired':     '#C62828',
+                'clr-limagenta': '#6A1B9A',
+                'clr-white':     '#333333',   // COLORWHITE 在白底下加深
+                'clr-yellow':    '#B8860B',   // COLORYELLOW → 暗金黄
+                // 面板 UI 颜色（浅色适配）
+                'panel-bg':       '#ffffff',
+                'header-bg':      '#f0f3fa',
+                'muted':          '#9598a1',
+                'dim-text':       '#787b86',
+                'surface-hover':  '#e0e3eb',
+                'border-hover':   '#b0b3c0',
+                'close-hover-bg': 'rgba(0,0,0,0.06)'
+            }
+        };
+
+        /**
+         * 返回当前主题下指定色键对应的色值。
+         * @param {string} key — 如 'clr-yellow' / 'builtin' / 'bg'
+         * @returns {string}
+         */
+        function getThemeColor(key) {
+            var palette = (g_currentTheme === 'white') ? FEP_COLOR_MAP.light : FEP_COLOR_MAP.dark;
+            return palette[key] || '';
+        }
+
+        /**
+         * 将当前主题的所有编辑器颜色显式写入 :root CSS 自定义属性，
+         * 然后通知 CodeMirror 刷新布局。
+         * 主题切换时调用，确保颜色立即生效。
+         */
+        function applyEditorTheme() {
+            var palette = (g_currentTheme === 'white') ? FEP_COLOR_MAP.light : FEP_COLOR_MAP.dark;
+            var root    = document.documentElement;
+            Object.keys(palette).forEach(function(k) {
+                root.style.setProperty('--fep-' + k, palette[k]);
+            });
+            // CodeMirror 颜色由 CSS 变量驱动，refresh() 确保 gutter 等组件同步重绘
+            if (jsEditor) jsEditor.refresh();
+        }
 
         // ================================================================
         // X 轴标签上下文感知格式化
@@ -2324,7 +2453,7 @@
 
             klineControl.LoadLocalIndex();
 
-            var jsEditor;
+            // jsEditor 已在全局声明（var jsEditor = null），此处直接赋值
             $('#tools_code').val(DEFAULT_CODE);
             jsEditor = CodeMirror.fromTextArea($('#tools_code').get(0), {
                 mode: "iyx-formula",
@@ -2338,6 +2467,7 @@
                 }
             });
             jsEditor.setSize('100%', '100%');
+            applyEditorTheme();   // 初始化时应用一次，确保 CSS 变量与当前主题一致
 
             klineControl.IndexEdit=jsEditor;
 
@@ -2379,6 +2509,10 @@
                 hqKeyboard.ReloadResource();
                 // 深色模式→太阳图标；浅色模式→月亮图标
                 document.getElementById('ThemeBtn').innerHTML = (nextTheme === 'black') ? SVG_SUN : SVG_MOON;
+                // 同步 body.light-mode 类，供面板 CSS 变量选择器使用
+                document.body.classList.toggle('light-mode', nextTheme === 'white');
+                // 将编辑器颜色变量切换到新主题并刷新 CodeMirror 布局
+                applyEditorTheme();
             };
 
             // ---- 搜索框 ----
@@ -2655,6 +2789,49 @@
     --TabItemBG:    #1e222d;
     --BorderColor:  rgba(42,46,57,0.8);
     --TabTextColor: #d1d4dc;
+
+    /* ── 公式编辑器颜色（深色默认） ─────────────────────────── */
+    /* 结构 */
+    --fep-bg:            #0b0e14;
+    --fep-text:          #d1d4dc;
+    --fep-gutter-bg:     #131722;
+    --fep-gutter-text:   #434651;
+    --fep-gutter-border: #2a2e39;
+    --fep-cursor:        #d1d4dc;
+    --fep-sep:           #434651;   /* resizer 条 + Header 底线 */
+    /* 语法 token */
+    --fep-comment:       #546e7a;
+    --fep-string:        #c3e88d;
+    --fep-number:        #f78c6c;
+    --fep-operator:      #89ddff;
+    --fep-keyword:       #ff5370;   /* CLOSE OPEN HIGH LOW VOL … */
+    --fep-builtin:       #82aaff;   /* MA EMA DRAWTEXT IF … */
+    --fep-variable:      #eeffff;   /* 用户变量 MA1 DIF2 … */
+    /* 颜色常量 (来自 JSComplier.ColorVarToRGB) */
+    --fep-clr-black:     #888888;
+    --fep-clr-blue:      rgb(18,95,216);
+    --fep-clr-green:     rgb(25,158,0);
+    --fep-clr-cyan:      rgb(0,255,198);
+    --fep-clr-red:       rgb(238,21,21);
+    --fep-clr-magenta:   rgb(255,0,222);
+    --fep-clr-brown:     rgb(149,94,15);
+    --fep-clr-ligray:    rgb(218,218,218);
+    --fep-clr-gray:      rgb(133,133,133);
+    --fep-clr-liblue:    rgb(94,204,255);
+    --fep-clr-ligreen:   rgb(183,255,190);
+    --fep-clr-licyan:    rgb(154,255,242);
+    --fep-clr-lired:     rgb(255,172,172);
+    --fep-clr-limagenta: rgb(255,145,241);
+    --fep-clr-white:     rgb(210,210,210);
+    --fep-clr-yellow:    rgb(255,198,0);
+    /* ── 面板 UI 颜色（深色默认） ───────────────────────────── */
+    --fep-panel-bg:       #131722;
+    --fep-header-bg:      #1e222d;
+    --fep-muted:          #787b86;
+    --fep-dim-text:       #B2B5BE;
+    --fep-surface-hover:  #2a2e39;
+    --fep-border-hover:   #4c525e;
+    --fep-close-hover-bg: rgba(255,255,255,0.08);
 }
 
 /* 浅色皮肤 (tkchart_style="0") */
@@ -2665,6 +2842,47 @@
     --TabItemBG:    #f0f3fa;
     --BorderColor:  #e0e3eb;
     --TabTextColor: #131722;
+
+    /* ── 公式编辑器颜色（浅色适配） ─────────────────────────── */
+    --fep-bg:            #f8fafc;
+    --fep-text:          #2a2e39;
+    --fep-gutter-bg:     #f0f3fa;
+    --fep-gutter-text:   #a0a3b0;
+    --fep-gutter-border: #dde0ea;
+    --fep-cursor:        #2a2e39;
+    --fep-sep:           #c8cad4;   /* 浅色分割线 */
+    --fep-comment:       #6e8ca0;
+    --fep-string:        #388E3C;   /* 深绿 */
+    --fep-number:        #C84B31;   /* 深橙红 */
+    --fep-operator:      #0277BD;   /* 深蓝 */
+    --fep-keyword:       #B71C1C;   /* 深红 — CLOSE OPEN … */
+    --fep-builtin:       #1565C0;   /* 深蓝 — MA EMA … */
+    --fep-variable:      #2a2e39;   /* 近黑 */
+    /* 颜色常量 — 浅色背景下需要加深以保持对比度 */
+    --fep-clr-black:     #000000;
+    --fep-clr-blue:      #1255CC;
+    --fep-clr-green:     #006400;   /* 深绿 (COLORGREEN) */
+    --fep-clr-cyan:      #006B5E;   /* 深青 */
+    --fep-clr-red:       #B71C1C;   /* 深红 (COLORRED) */
+    --fep-clr-magenta:   #880088;   /* 深品红 */
+    --fep-clr-brown:     #6D4C41;
+    --fep-clr-ligray:    #757575;
+    --fep-clr-gray:      #424242;
+    --fep-clr-liblue:    #0288D1;
+    --fep-clr-ligreen:   #2E7D32;
+    --fep-clr-licyan:    #00695C;
+    --fep-clr-lired:     #C62828;
+    --fep-clr-limagenta: #6A1B9A;
+    --fep-clr-white:     #333333;   /* COLORWHITE 在白底下需加深 */
+    --fep-clr-yellow:    #B8860B;   /* 暗金黄 (COLORYELLOW) */
+    /* ── 面板 UI 颜色（浅色适配） ───────────────────────────── */
+    --fep-panel-bg:       #ffffff;
+    --fep-header-bg:      #f0f3fa;
+    --fep-muted:          #9598a1;
+    --fep-dim-text:       #787b86;
+    --fep-surface-hover:  #e0e3eb;
+    --fep-border-hover:   #b0b3c0;
+    --fep-close-hover-bg: rgba(0,0,0,0.06);
 }
 
 /* 深色皮肤 (tkchart_style="1") */
@@ -2674,6 +2892,7 @@
     --TabItemBG:    #1e222d;
     --BorderColor:  rgba(42,46,57,0.8);
     --TabTextColor: #d1d4dc;
+    /* 深色皮肤编辑器颜色与 :root 默认值相同，无需重复声明 */
 }
 
 html, body
@@ -2731,7 +2950,7 @@ select, input[type="text"], input[type="search"]
     width: 100%;
     height: 38px;
     padding: 0 5px;
-    border-bottom: solid 4px #434651;   /* 与 floatEditorPanel 左侧 resizer 保持一致 */
+    border-bottom: solid 4px var(--fep-sep);   /* 与 floatEditorPanel 左侧 resizer 保持一致，随主题变化 */
     background-color: var(--BGColor);
     box-sizing: border-box;
     overflow: hidden;
@@ -2911,10 +3130,10 @@ select, input[type="text"], input[type="search"]
     z-index: 1000;
     display: none;      /* toggled to flex by JS */
     flex-direction: column;
-    background: #131722;
+    background: var(--fep-panel-bg);
     /* left border is now the resizer track; no static border-left here */
     font-family: "Trebuchet MS", Arial, sans-serif;
-    color: #d1d4dc;
+    color: var(--fep-text);
     overflow: hidden;
     box-sizing: border-box;
 }
@@ -2927,7 +3146,7 @@ select, input[type="text"], input[type="search"]
     left: 0;
     width: 4px;
     height: 100%;
-    background: #434651;
+    background: var(--fep-sep);
     cursor: col-resize;
     z-index: 10;
     transition: background 0.15s;
@@ -2948,8 +3167,8 @@ select, input[type="text"], input[type="search"]
     justify-content: space-between;
     height: 36px;
     padding: 0 12px;
-    background: #1e222d;
-    border-bottom: 1px solid #434651;
+    background: var(--fep-header-bg);
+    border-bottom: 1px solid var(--fep-sep);
 }
 
 .fep-title
@@ -2958,7 +3177,7 @@ select, input[type="text"], input[type="search"]
     font-weight: 700;
     letter-spacing: 0.8px;
     text-transform: uppercase;
-    color: #787b86;
+    color: var(--fep-muted);
 }
 
 .fep-close
@@ -2967,7 +3186,7 @@ select, input[type="text"], input[type="search"]
     height: 24px;
     border: none;
     background: transparent;
-    color: #787b86;
+    color: var(--fep-muted);
     font-size: 14px;
     cursor: pointer;
     border-radius: 3px;
@@ -2976,14 +3195,14 @@ select, input[type="text"], input[type="search"]
     justify-content: center;
     transition: background 0.12s, color 0.12s;
 }
-.fep-close:hover { background: rgba(255,255,255,0.08); color: #d1d4dc; }
+.fep-close:hover { background: var(--fep-close-hover-bg); color: var(--fep-text); }
 
 /* ── Top section — two columns ────────────────────────────────── */
 .fep-top
 {
     flex-shrink: 0;
     display: flex;
-    border-bottom: 1px solid #434651;
+    border-bottom: 1px solid var(--fep-sep);
 }
 
 /* Left: 4 control rows */
@@ -2994,7 +3213,7 @@ select, input[type="text"], input[type="search"]
     flex-direction: column;
     padding: 5px 8px;
     gap: 4px;
-    border-right: 1px solid #2a2e39;
+    border-right: 1px solid var(--fep-gutter-border);
     min-width: 0;
 }
 
@@ -3011,10 +3230,10 @@ select, input[type="text"], input[type="search"]
     flex: 1;
     height: 24px;
     padding: 0 6px;
-    background: #0b0e14;
-    border: 1px solid #2a2e39;
+    background: var(--fep-bg);
+    border: 1px solid var(--fep-gutter-border);
     border-radius: 3px;
-    color: #d1d4dc;
+    color: var(--fep-text);
     font-size: 11px;
     font-family: inherit;
     outline: none;
@@ -3026,10 +3245,10 @@ select, input[type="text"], input[type="search"]
 {
     height: 24px;
     padding: 0 4px;
-    background: #0b0e14;
-    border: 1px solid #2a2e39;
+    background: var(--fep-bg);
+    border: 1px solid var(--fep-gutter-border);
     border-radius: 3px;
-    color: #d1d4dc;
+    color: var(--fep-text);
     font-size: 11px;
     font-family: inherit;
     outline: none;
@@ -3042,16 +3261,16 @@ select, input[type="text"], input[type="search"]
     height: 24px;
     padding: 0 8px;
     border-radius: 3px;
-    border: 1px solid #2a2e39;
-    background: #1e222d;
-    color: #d1d4dc;
+    border: 1px solid var(--fep-gutter-border);
+    background: var(--fep-header-bg);
+    color: var(--fep-text);
     font-size: 11px;
     font-family: inherit;
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.1s, border-color 0.1s;
 }
-.fep-btn:hover { background: #2a2e39; border-color: #4c525e; }
+.fep-btn:hover { background: var(--fep-surface-hover); border-color: var(--fep-border-hover); }
 
 .fep-btn-primary
 {
@@ -3071,7 +3290,7 @@ select, input[type="text"], input[type="search"]
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: #787b86;
+    color: var(--fep-muted);
     white-space: nowrap;
     cursor: pointer;
     -webkit-user-select: none;
@@ -3100,8 +3319,8 @@ select, input[type="text"], input[type="search"]
     align-items: center;
     gap: 4px;
     height: 26px;
-    background: #0b0e14;
-    border: 1px solid #2a2e39;
+    background: var(--fep-bg);
+    border: 1px solid var(--fep-gutter-border);
     border-radius: 3px;
     padding: 0 6px;
 }
@@ -3111,20 +3330,20 @@ select, input[type="text"], input[type="search"]
     width: 34px;
     background: transparent;
     border: none;
-    color: #787b86;
+    color: var(--fep-muted);
     font-size: 11px;
     font-family: inherit;
     outline: none;
 }
 
-.fep-peq { color: #434651; font-size: 11px; flex-shrink: 0; }
+.fep-peq { color: var(--fep-sep); font-size: 11px; flex-shrink: 0; }
 
 .fep-pval
 {
     flex: 1;
     background: transparent;
     border: none;
-    color: #d1d4dc;
+    color: var(--fep-text);
     font-size: 11px;
     font-family: inherit;
     outline: none;
@@ -3161,7 +3380,7 @@ select, input[type="text"], input[type="search"]
 {
     flex-shrink: 0;
     width: 4px;
-    background: #434651;
+    background: var(--fep-sep);
     cursor: col-resize;
     transition: background 0.15s;
     z-index: 5;
@@ -3188,8 +3407,8 @@ select, input[type="text"], input[type="search"]
 {
     flex-shrink: 0;
     display: flex;
-    background: #1e222d;
-    border-bottom: 1px solid #434651;
+    background: var(--fep-header-bg);
+    border-bottom: 1px solid var(--fep-sep);
 }
 
 .fep-tab
@@ -3200,15 +3419,15 @@ select, input[type="text"], input[type="search"]
     border: none;
     border-bottom: 2px solid transparent;
     background: transparent;
-    color: #787b86;
+    color: var(--fep-muted);
     font-size: 10px;
     font-family: inherit;
     cursor: pointer;
     white-space: nowrap;
     transition: color 0.1s, border-color 0.1s;
 }
-.fep-tab:hover { color: #d1d4dc; }
-.fep-tab.active { color: #d1d4dc; border-bottom-color: #2962ff; }
+.fep-tab:hover { color: var(--fep-text); }
+.fep-tab.active { color: var(--fep-text); border-bottom-color: #2962ff; }
 
 /* ── Tab content panels ───────────────────────────────────────── */
 .fep-tab-content
@@ -3240,11 +3459,11 @@ select, input[type="text"], input[type="search"]
     justify-content: space-between;
     padding: 5px 10px;
     font-size: 11px;
-    color: #d1d4dc;
+    color: var(--fep-text);
     cursor: pointer;
-    border-bottom: 1px solid #1e222d;
+    border-bottom: 1px solid var(--fep-header-bg);
 }
-#fep-panel-list #local_index li:hover { background: #1e222d; }
+#fep-panel-list #local_index li:hover { background: var(--fep-header-bg); }
 
 #fep-panel-list #local_index li span
 {
@@ -3262,7 +3481,7 @@ select, input[type="text"], input[type="search"]
     padding: 8px 10px;
     font-size: 11px;
     font-family: "Trebuchet MS", Consolas, monospace;
-    color: #d1d4dc;
+    color: var(--fep-text);
     white-space: pre-wrap;
     word-break: break-all;
 }
@@ -3276,7 +3495,7 @@ select, input[type="text"], input[type="search"]
     padding: 8px 10px;
     font-size: 11px;
     font-family: "Trebuchet MS", Consolas, monospace;
-    color: #B2B5BE;
+    color: var(--fep-dim-text);
     white-space: pre-wrap;
     word-break: break-all;
 }
@@ -3285,14 +3504,14 @@ select, input[type="text"], input[type="search"]
 {
     padding: 10px;
     font-size: 11px;
-    color: #434651;
+    color: var(--fep-muted);
 }
 
-/* ── CodeMirror 编辑器结构样式 ────────────────────────────────── */
+/* ── CodeMirror 编辑器结构样式 — 颜色全部读取 CSS 变量，随主题自动切换 ── */
 #floatEditorPanel .CodeMirror
 {
-    background: #0b0e14 !important;
-    color: #d1d4dc !important;
+    background: var(--fep-bg)   !important;
+    color:      var(--fep-text) !important;
     font-family: "Trebuchet MS", Consolas, monospace !important;
     font-size: 12px !important;
     height: 100% !important;
@@ -3303,12 +3522,12 @@ select, input[type="text"], input[type="search"]
 
 #floatEditorPanel .CodeMirror-gutters
 {
-    background: #131722 !important;
-    border-right: 1px solid #2a2e39 !important;
+    background:   var(--fep-gutter-bg)     !important;
+    border-right: 1px solid var(--fep-gutter-border) !important;
 }
 
-#floatEditorPanel .CodeMirror-linenumber { color: #434651 !important; }
-#floatEditorPanel .CodeMirror-cursor    { border-left-color: #d1d4dc !important; }
+#floatEditorPanel .CodeMirror-linenumber { color: var(--fep-gutter-text) !important; }
+#floatEditorPanel .CodeMirror-cursor    { border-left-color: var(--fep-cursor) !important; }
 
 #floatEditorPanel .CodeMirror-selected,
 #floatEditorPanel .CodeMirror-line ::selection
@@ -3316,52 +3535,52 @@ select, input[type="text"], input[type="search"]
     background: rgba(41,98,255,0.25) !important;
 }
 
-/* ── IYX 公式 token 颜色 (theme: fep-dark) ──────────────────────
-   对应 iyx-formula mode 返回的 token 类型
+/* ── IYX 公式 token 颜色 — 通过 CSS 变量实现主题感知 ────────────
+   深色 → :root 默认值；浅色 → :root[tkchart_style='0'] 覆盖值
    CodeMirror 自动添加 cm- 前缀，e.g. 'builtin' → .cm-builtin
 ─────────────────────────────────────────────────────────────── */
 
 /* 注释 { } 和 //                                                 */
-#floatEditorPanel .cm-s-fep-dark .cm-comment   { color: #546e7a; font-style: italic; }
+#floatEditorPanel .cm-s-fep-dark .cm-comment   { color: var(--fep-comment);  font-style: italic; }
 /* 字符串 '...'                                                   */
-#floatEditorPanel .cm-s-fep-dark .cm-string    { color: #c3e88d; }
+#floatEditorPanel .cm-s-fep-dark .cm-string    { color: var(--fep-string);   }
 /* 数字字面量                                                     */
-#floatEditorPanel .cm-s-fep-dark .cm-number    { color: #f78c6c; }
+#floatEditorPanel .cm-s-fep-dark .cm-number    { color: var(--fep-number);   }
 /* 运算符 / 标点                                                  */
-#floatEditorPanel .cm-s-fep-dark .cm-operator  { color: #89ddff; }
+#floatEditorPanel .cm-s-fep-dark .cm-operator  { color: var(--fep-operator); }
 /* 数据字段: CLOSE OPEN HIGH LOW VOL C O H L V ...               */
-#floatEditorPanel .cm-s-fep-dark .cm-keyword   { color: #ff5370; font-weight: bold; }
+#floatEditorPanel .cm-s-fep-dark .cm-keyword   { color: var(--fep-keyword);  font-weight: bold; }
 /* 内置函数: MA EMA RSI DRAWTEXT IF CROSS ...                     */
-#floatEditorPanel .cm-s-fep-dark .cm-builtin   { color: #82aaff; }
+#floatEditorPanel .cm-s-fep-dark .cm-builtin   { color: var(--fep-builtin);  }
 /* 用户定义变量: MA1 DIF2 VARHIGH ...                             */
-#floatEditorPanel .cm-s-fep-dark .cm-variable  { color: #eeffff; }
+#floatEditorPanel .cm-s-fep-dark .cm-variable  { color: var(--fep-variable); }
 
-/* ── 颜色常量 — 直接渲染为其对应的真实颜色 ──────────────────────
-   颜色值来源: JSComplier.ColorVarToRGB (iyxchart.complier.js)
-   示例: ,COLORYELLOW 在编辑器中显示为亮黄色
+/* ── 颜色常量 — 深色/浅色下各自使用可读的对应色值 ──────────────
+   深色: 原始真实色 (来自 JSComplier.ColorVarToRGB)
+   浅色: 加深版，确保在白底上对比度足够
 ─────────────────────────────────────────────────────────────── */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-black    { color: #888888; }            /* COLORBLACK   (暗背景调亮) */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-blue     { color: rgb(18,95,216);   }   /* COLORBLUE     */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-green    { color: rgb(25,158,0);    }   /* COLORGREEN    */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-cyan     { color: rgb(0,255,198);   }   /* COLORCYAN     */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-red      { color: rgb(238,21,21);   }   /* COLORRED      */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-magenta  { color: rgb(255,0,222);   }   /* COLORMAGENTA  */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-brown    { color: rgb(149,94,15);   }   /* COLORBROWN    */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-ligray   { color: rgb(218,218,218); }   /* COLORLIGRAY   */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-gray     { color: rgb(133,133,133); }   /* COLORGRAY     */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-liblue   { color: rgb(94,204,255);  }   /* COLORLIBLUE   */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-ligreen  { color: rgb(183,255,190); }   /* COLORLIGREEN  */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-licyan   { color: rgb(154,255,242); }   /* COLORLICYAN   */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-lired    { color: rgb(255,172,172); }   /* COLORLIRED    */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-limagenta{ color: rgb(255,145,241); }   /* COLORLIMAGENTA*/
-#floatEditorPanel .cm-s-fep-dark .cm-clr-white    { color: rgb(210,210,210); }   /* COLORWHITE    (暗背景调暗) */
-#floatEditorPanel .cm-s-fep-dark .cm-clr-yellow   { color: rgb(255,198,0);   }   /* COLORYELLOW   */
+#floatEditorPanel .cm-s-fep-dark .cm-clr-black    { color: var(--fep-clr-black);    }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-blue     { color: var(--fep-clr-blue);     }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-green    { color: var(--fep-clr-green);    }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-cyan     { color: var(--fep-clr-cyan);     }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-red      { color: var(--fep-clr-red);      }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-magenta  { color: var(--fep-clr-magenta);  }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-brown    { color: var(--fep-clr-brown);    }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-ligray   { color: var(--fep-clr-ligray);   }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-gray     { color: var(--fep-clr-gray);     }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-liblue   { color: var(--fep-clr-liblue);   }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-ligreen  { color: var(--fep-clr-ligreen);  }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-licyan   { color: var(--fep-clr-licyan);   }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-lired    { color: var(--fep-clr-lired);    }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-limagenta{ color: var(--fep-clr-limagenta);}
+#floatEditorPanel .cm-s-fep-dark .cm-clr-white    { color: var(--fep-clr-white);    }
+#floatEditorPanel .cm-s-fep-dark .cm-clr-yellow   { color: var(--fep-clr-yellow);   }
 
 /* ── Thin dark scrollbars throughout the panel ────────────────── */
 #floatEditorPanel ::-webkit-scrollbar           { width: 5px; height: 5px; }
 #floatEditorPanel ::-webkit-scrollbar-track     { background: transparent; }
-#floatEditorPanel ::-webkit-scrollbar-thumb     { background: #434651; border-radius: 3px; }
-#floatEditorPanel ::-webkit-scrollbar-thumb:hover { background: #787b86; }
+#floatEditorPanel ::-webkit-scrollbar-thumb     { background: var(--fep-sep);  border-radius: 3px; }
+#floatEditorPanel ::-webkit-scrollbar-thumb:hover { background: var(--fep-muted); }
 
 /* ---- 绘图工具浮层保证在图表上方 ---- */
 .IYXChart_DrawTool_Dialog_Div
